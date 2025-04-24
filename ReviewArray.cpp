@@ -1,9 +1,11 @@
 #include <iostream>
-#include <string>
 #include <fstream>
 #include <sstream>
-#include <vector>
+#include <string>
+#include <cctype>
 using namespace std;
+
+const int MAX_REVIEWS = 1000;
 
 struct Review {
     string ProdID;
@@ -14,17 +16,22 @@ struct Review {
 
 class ReviewArray {
 private:
-    vector<Review> reviews;
+    Review reviews[MAX_REVIEWS];
+    int size;
 
 public:
-    // Add review to array
+    ReviewArray() {
+        size = 0;
+    }
+
     void AddReview(const string& prodID, const string& custID, int rating, const string& reviewTxt) {
-        Review r;
-        r.ProdID = prodID;
-        r.CustID = custID;
-        r.Rating = rating;
-        r.ReviewTxt = reviewTxt;
-        reviews.push_back(r);
+        if (size >= MAX_REVIEWS) return; // silently ignore if full
+
+        reviews[size].ProdID = prodID;
+        reviews[size].CustID = custID;
+        reviews[size].Rating = rating;
+        reviews[size].ReviewTxt = reviewTxt;
+        size++;
     }
 
     bool LoadReviewsFromCSV(const string& filename) {
@@ -46,7 +53,6 @@ public:
             getline(ss, ratingStr, ',');
             getline(ss, reviewTxt);
 
-            // Remove surrounding quotes if any
             if (!reviewTxt.empty() && reviewTxt.front() == '"' && reviewTxt.back() == '"') {
                 reviewTxt = reviewTxt.substr(1, reviewTxt.size() - 2);
             }
@@ -59,40 +65,99 @@ public:
         return true;
     }
 
-    // Display reviews
-    void DisplayReviews() const {
-        if (reviews.empty()) {
-            cout << "No reviews to display." << endl;
-            return;
-        }
-
-        cout << "Reviews in array:\n---------------\n";
-        int count = 0;
-        for (const auto& r : reviews) {
-            count++;
-            cout << count << ". Product: " << r.ProdID
-                 << ", Customer: " << r.CustID
-                 << ", Rating: " << r.Rating
-                 << ", Review: \"" << r.ReviewTxt << "\"\n";
-        }
-
-        cout << "Total reviews: " << count << endl;
+    void DisplayReviewSummary() {
+        cout << "Total number of reviews: " << size << endl;
     }
 
-    int GetTotalReviews() const {
-        return reviews.size();
+    void SearchByRating(int targetRating) {
+        cout << "\nReviews with " << targetRating << "-star rating:\n";
+
+        int count = 0;
+        for (int i = 0; i < size; ++i) {
+            if (reviews[i].Rating == targetRating) {
+                cout << "- " << reviews[i].ReviewTxt << endl;
+                count++;
+            }
+        }
+
+        if (count == 0) {
+            cout << "No reviews found with rating " << targetRating << "." << endl;
+        } else {
+            cout << "Total found: " << count << endl;
+        }
+    }
+
+    void MostFrequentWordsIn1StarReviews() {
+        struct WordFreq {
+            string word;
+            int count;
+        };
+
+        WordFreq wordCounts[500];
+        int wordCountSize = 0;
+
+        for (int i = 0; i < size; ++i) {
+            if (reviews[i].Rating == 1) {
+                stringstream ss(reviews[i].ReviewTxt);
+                string word;
+                while (ss >> word) {
+                    for (char& c : word) {
+                        c = tolower(c);
+                        if (ispunct(c)) c = ' ';
+                    }
+
+                    string cleanedWord;
+                    for (char c : word) {
+                        if (!ispunct(c)) cleanedWord += c;
+                    }
+
+                    if (cleanedWord.empty()) continue;
+
+                    bool found = false;
+                    for (int j = 0; j < wordCountSize; ++j) {
+                        if (wordCounts[j].word == cleanedWord) {
+                            wordCounts[j].count++;
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found && wordCountSize < 500) {
+                        wordCounts[wordCountSize].word = cleanedWord;
+                        wordCounts[wordCountSize].count = 1;
+                        wordCountSize++;
+                    }
+                }
+            }
+        }
+
+        // Simple bubble sort by frequency
+        for (int i = 0; i < wordCountSize - 1; ++i) {
+            for (int j = 0; j < wordCountSize - i - 1; ++j) {
+                if (wordCounts[j].count < wordCounts[j + 1].count) {
+                    swap(wordCounts[j], wordCounts[j + 1]);
+                }
+            }
+        }
+
+        cout << "\nTop 10 most frequent words in 1-star reviews:\n";
+        for (int i = 0; i < 10 && i < wordCountSize; ++i) {
+            cout << wordCounts[i].word << ": " << wordCounts[i].count << " times" << endl;
+        }
     }
 };
 
 int main() {
-    ReviewArray myReviewArray;
-    string filename = "C:/Users/kenji/OneDrive/Documents/Uni/SEM 4/DS/Project 1/reviews_clean.csv";
+    ReviewArray reviews;
+    string filename = "C:/path/to/reviews_clean.csv"; // 🔁 Update this to your real path
 
-    if (myReviewArray.LoadReviewsFromCSV(filename)) {
-        cout << "Reviews loaded successfully!\n";
-        myReviewArray.DisplayReviews();
+    if (reviews.LoadReviewsFromCSV(filename)) {
+        cout << "✅ Reviews loaded successfully!" << endl;
+
+        reviews.DisplayReviewSummary();
+        reviews.MostFrequentWordsIn1StarReviews();
+        reviews.SearchByRating(5); // 🔍 Example: find all 5-star reviews
     } else {
-        cout << "Failed to load reviews.\n";
+        cout << "❌ Failed to load reviews." << endl;
     }
 
     return 0;
