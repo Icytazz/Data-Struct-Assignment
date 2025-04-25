@@ -23,8 +23,8 @@ string trim(const string& str) {
 }
 
 int main() {
-    ifstream infile("reviews.csv");
-    ofstream outfile("cleaned_reviews.csv");
+    ifstream infile("C:/Users/User/OneDrive - Asia Pacific University/SEM_4/Data_Structures/Assignment/reviews.csv");
+    ofstream outfile("C:/Users/User/OneDrive - Asia Pacific University/SEM_4/Data_Structures/Assignment/cleaned_reviews.csv");
 
     if (!infile.is_open() || !outfile.is_open()) {
         cerr << "Error opening file.\n";
