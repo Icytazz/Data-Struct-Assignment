@@ -144,7 +144,6 @@ int main(){
     
     if (myTransactions.LoadReviewsFromCSV(filename, myTransactions)) {
         cout << "Reviews loaded successfully!" << endl;
-        myTransactions.displaynodes();
         myTransactions.PercentageElectronicsCreditCard();
     } else {
         cout << "Failed to load reviews." << endl;
