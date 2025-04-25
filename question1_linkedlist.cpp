@@ -207,7 +207,6 @@ int main(){
         cout << "Reviews loaded successfully!" << endl;
         myTransactions.displaynodes();
         myTransactions.bubbleSortByDate();
-        myTransactions.displaynodes();
         myTransactions.countNodes();
     } else {
         cout << "Failed to load reviews." << endl;
