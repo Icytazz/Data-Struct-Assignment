@@ -100,9 +100,11 @@ struct ReviewArray {
     void MostFrequentWordsIn1StarReviews(int topN = 10) {
         WordCount wordList[MAX_WORDS];
         int wordCountSize = 0;
+        int total1Star = 0;
 
         for (int i = 0; i < size; ++i) {
             if (reviews[i].Rating == 1) {
+                total1Star++;
                 stringstream ss(reviews[i].ReviewTxt);
                 string word;
                 while (ss >> word) {
@@ -137,11 +139,17 @@ struct ReviewArray {
             }
         }
 
-        cout << "\nTop " << topN << " most frequent words in 1-star reviews:\n";
-        for (int i = 0; i < topN && i < wordCountSize; ++i) {
-            cout << wordList[i].word << ": " << wordList[i].count << " times\n";
+        cout << "\nTop 10 most frequent words in 1-star reviews (" << total1Star << " reviews found):\n";
+        cout << "---------------------------------------------------------------\n";
+        cout << "Rank   Word         Frequency\n";
+        cout << "---------------------------------------------------------------\n";
+
+        for (int i = 0; i < 10 && i < wordCountSize; ++i) {
+            cout.width(6); cout << left << (to_string(i + 1) + ".");
+            cout.width(13); cout << left << wordCounts[i].word;
+            cout << wordCounts[i].count << endl;
         }
-    }
+
 };
 
 int main() {
