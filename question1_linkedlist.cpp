@@ -148,6 +148,17 @@ struct TransactionLinked{
             lptr = ptr1;
         } while (swapped);
     }
+
+    int countNodes() {
+        int count = 0;
+        Transaction* current = Entry;
+        while (current != nullptr) {
+            count++;
+            current = current->next;
+        }
+        cout << "Current Number of Valid Transactions: "<< count << endl;
+        return count;
+    }
     
 
     bool LoadReviewsFromCSV(const string& filename, TransactionLinked& list) {
@@ -197,6 +208,7 @@ int main(){
         myTransactions.displaynodes();
         myTransactions.bubbleSortByDate();
         myTransactions.displaynodes();
+        myTransactions.countNodes();
     } else {
         cout << "Failed to load reviews." << endl;
     }
