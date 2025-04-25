@@ -6,8 +6,8 @@
 
 using namespace std;
 
-const int MAX_REVIEWS = 1000;
-const int MAX_WORDS = 500;
+const int MAX_REVIEWS = 10000;
+const int MAX_WORDS = 1000;
 
 struct Review {
     string ProdID;
@@ -146,7 +146,7 @@ struct ReviewArray {
 
 int main() {
     ReviewArray reviews;
-    string filename = "C:/path/to/reviews_clean.csv"; // <- Update path
+    string filename = "C:/Users/User/OneDrive - Asia Pacific University/SEM_4/Data_Structures/Assignment/reviews_clean.csv";
 
     if (reviews.LoadReviewsFromCSV(filename)) {
         cout << "Reviews loaded successfully!\n" << endl;
