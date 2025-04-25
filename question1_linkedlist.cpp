@@ -2,7 +2,10 @@
 #include <string>
 #include <fstream>
 #include <sstream>
+#include <chrono>
 using namespace std;
+using namespace chrono;
+
 
 struct Transaction{
     Transaction* next;
@@ -69,6 +72,7 @@ struct TransactionLinked{
 
 
     void bubbleSortByPrice() {
+        auto start = high_resolution_clock::now();
         if (Entry == nullptr || Entry->next == nullptr) return;
     
         bool swapped;
@@ -103,9 +107,13 @@ struct TransactionLinked{
             }
             lptr = ptr1;
         } while (swapped);
+        auto end = high_resolution_clock::now();
+        auto duration = duration_cast<microseconds>(end - start);
+
     }
 
     void bubbleSortByDate() {
+        auto start = high_resolution_clock::now();
         if (Entry == nullptr || Entry->next == nullptr) return;
     
         bool swapped;
@@ -147,6 +155,13 @@ struct TransactionLinked{
             }
             lptr = ptr1;
         } while (swapped);
+
+        auto end = high_resolution_clock::now();
+        auto duration = duration_cast<microseconds>(end - start);
+
+        cout << "Time taken: " << duration.count() << " microseconds" << endl;
+        // cout << "time taken to sort: " << duration << endl;
+
     }
 
     int countNodes() {
@@ -157,6 +172,8 @@ struct TransactionLinked{
             current = current->next;
         }
         cout << "Current Number of Valid Transactions: "<< count << endl;
+        cout << "Space used: " << count * sizeof(Transaction) << " bytes" << endl;
+
         return count;
     }
     
@@ -205,8 +222,8 @@ int main(){
     
     if (myTransactions.LoadReviewsFromCSV(filename, myTransactions)) {
         cout << "Reviews loaded successfully!" << endl;
-        myTransactions.displaynodes();
         myTransactions.bubbleSortByDate();
+        myTransactions.displaynodes();
         myTransactions.countNodes();
     } else {
         cout << "Failed to load reviews." << endl;
