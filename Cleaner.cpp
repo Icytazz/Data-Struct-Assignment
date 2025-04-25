@@ -3,56 +3,60 @@
 #include <sstream>
 #include <string>
 
-bool is_valid_rating(const std::string& rating) {
+using namespace std;
+
+bool is_valid_rating(const string& rating) {
     try {
-        int r = std::stoi(rating);
+        int r = stoi(rating);
         return r >= 1 && r <= 5;
     } catch (...) {
         return false;
     }
 }
 
-std::string trim(const std::string& str) {
-    const std::string whitespace = " \t\n\r";
+string trim(const string& str) {
+    const string whitespace = " \t\n\r";
     size_t start = str.find_first_not_of(whitespace);
-    if (start == std::string::npos) return "";
+    if (start == string::npos) return "";
     size_t end = str.find_last_not_of(whitespace);
     return str.substr(start, end - start + 1);
 }
 
 int main() {
-    std::ifstream infile("reviews.csv");
-    std::ofstream outfile("cleaned_reviews.csv");
+    ifstream infile("reviews.csv");
+    ofstream outfile("cleaned_reviews.csv");
 
     if (!infile.is_open() || !outfile.is_open()) {
-        std::cerr << "Error opening file.\n";
+        cerr << "Error opening file.\n";
         return 1;
     }
 
-    std::string line;
+    string line;
     bool isHeader = true;
 
-    while (std::getline(infile, line)) {
+    while (getline(infile, line)) {
         if (isHeader) {
-            outfile << line << "\n";  // Copy header
+            outfile << line << "\n";  // Keep header
             isHeader = false;
             continue;
         }
 
-        std::stringstream ss(line);
-        std::string productId, customerId, rating, reviewText;
+        stringstream ss(line);
+        string productId, customerId, rating, reviewText;
 
-        std::getline(ss, productId, ',');
-        std::getline(ss, customerId, ',');
-        std::getline(ss, rating, ',');
-        std::getline(ss, reviewText);
+        getline(ss, productId, ',');
+        getline(ss, customerId, ',');
+        getline(ss, rating, ',');
+        getline(ss, reviewText); // Rest is review text
 
+        // Trim all fields
         productId = trim(productId);
         customerId = trim(customerId);
         rating = trim(rating);
+        reviewText = trim(reviewText);
 
-        // Drop if Product ID, Customer ID, or Rating is invalid
-        if (productId.empty() || customerId.empty() || !is_valid_rating(rating)) {
+        // Drop invalid rows
+        if (productId.empty() || customerId.empty() || !is_valid_rating(rating) || reviewText.empty()) {
             continue;
         }
 
@@ -62,6 +66,6 @@ int main() {
     infile.close();
     outfile.close();
 
-    std::cout << "Cleaned data saved to 'cleaned_reviews.csv'.\n";
+    cout << "Cleaned data saved to 'cleaned_reviews.csv'.\n";
     return 0;
 }
