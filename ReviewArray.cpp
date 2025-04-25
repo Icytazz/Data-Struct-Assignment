@@ -1,9 +1,13 @@
 #include <iostream>
-#include <string>
 #include <fstream>
 #include <sstream>
-#include <vector>
+#include <string>
+#include <cctype>
+
 using namespace std;
+
+const int MAX_REVIEWS = 1000;
+const int MAX_WORDS = 500;
 
 struct Review {
     string ProdID;
@@ -12,22 +16,27 @@ struct Review {
     string ReviewTxt;
 };
 
-class ReviewArray {
-private:
-    vector<Review> reviews;
+struct WordCount {
+    string word;
+    int count;
+};
 
-public:
-    // Add review to array
+struct ReviewArray {
+    Review reviews[MAX_REVIEWS];
+    int size = 0;
+
     void AddReview(const string& prodID, const string& custID, int rating, const string& reviewTxt) {
-        Review r;
-        r.ProdID = prodID;
-        r.CustID = custID;
-        r.Rating = rating;
-        r.ReviewTxt = reviewTxt;
-        reviews.push_back(r);
+        if (size < MAX_REVIEWS) {
+            reviews[size].ProdID = prodID;
+            reviews[size].CustID = custID;
+            reviews[size].Rating = rating;
+            reviews[size].ReviewTxt = reviewTxt;
+            size++;
+        } else {
+            cout << "Error: Reached maximum number of reviews." << endl;
+        }
     }
 
-    // Load from CSV
     bool LoadReviewsFromCSV(const string& filename) {
         ifstream file(filename);
         if (!file.is_open()) {
@@ -47,54 +56,104 @@ public:
             getline(ss, ratingStr, ',');
             getline(ss, reviewTxt);
 
-            // Remove surrounding quotes if any
             if (!reviewTxt.empty() && reviewTxt.front() == '"' && reviewTxt.back() == '"') {
                 reviewTxt = reviewTxt.substr(1, reviewTxt.size() - 2);
             }
 
-            int rating = stoi(ratingStr);
-            AddReview(prodID, custID, rating, reviewTxt);
+            try {
+                int rating = stoi(ratingStr);
+                AddReview(prodID, custID, rating, reviewTxt);
+            } catch (...) {
+                cout << "Warning: Skipping invalid line." << endl;
+                continue;
+            }
         }
 
         file.close();
         return true;
     }
 
-    // Display reviews
-    void DisplayReviews() const {
-        if (reviews.empty()) {
+    void DisplayReviews() {
+        if (size == 0) {
             cout << "No reviews to display." << endl;
             return;
         }
 
-        cout << "Reviews in array:\n---------------\n";
-        int count = 0;
-        for (const auto& r : reviews) {
-            count++;
-            cout << count << ". Product: " << r.ProdID
-                 << ", Customer: " << r.CustID
-                 << ", Rating: " << r.Rating
-                 << ", Review: \"" << r.ReviewTxt << "\"\n";
+        for (int i = 0; i < size; ++i) {
+            cout << i + 1 << ". Product: " << reviews[i].ProdID
+                 << ", Customer: " << reviews[i].CustID
+                 << ", Rating: " << reviews[i].Rating
+                 << ", Review: \"" << reviews[i].ReviewTxt << "\"" << endl;
         }
 
-        cout << "Total reviews: " << count << endl;
+        cout << "Total reviews: " << size << endl;
     }
 
-    // Optional: get total count
-    int GetTotalReviews() const {
-        return reviews.size();
+    string CleanWord(string word) {
+        string clean;
+        for (char c : word) {
+            if (isalnum(c)) clean += tolower(c);
+        }
+        return clean;
+    }
+
+    void MostFrequentWordsIn1StarReviews(int topN = 10) {
+        WordCount wordList[MAX_WORDS];
+        int wordCountSize = 0;
+
+        for (int i = 0; i < size; ++i) {
+            if (reviews[i].Rating == 1) {
+                stringstream ss(reviews[i].ReviewTxt);
+                string word;
+                while (ss >> word) {
+                    word = CleanWord(word);
+                    if (word.empty()) continue;
+
+                    bool found = false;
+                    for (int j = 0; j < wordCountSize; ++j) {
+                        if (wordList[j].word == word) {
+                            wordList[j].count++;
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found && wordCountSize < MAX_WORDS) {
+                        wordList[wordCountSize].word = word;
+                        wordList[wordCountSize].count = 1;
+                        wordCountSize++;
+                    }
+                }
+            }
+        }
+
+        // Simple bubble sort (descending order)
+        for (int i = 0; i < wordCountSize - 1; ++i) {
+            for (int j = 0; j < wordCountSize - i - 1; ++j) {
+                if (wordList[j].count < wordList[j + 1].count) {
+                    WordCount temp = wordList[j];
+                    wordList[j] = wordList[j + 1];
+                    wordList[j + 1] = temp;
+                }
+            }
+        }
+
+        cout << "\nTop " << topN << " most frequent words in 1-star reviews:\n";
+        for (int i = 0; i < topN && i < wordCountSize; ++i) {
+            cout << wordList[i].word << ": " << wordList[i].count << " times\n";
+        }
     }
 };
 
 int main() {
-    ReviewArray myReviewArray;
-    string filename = "C:/Users/User/OneDrive - Asia Pacific University/SEM_4/Data_Structures/Assignment/reviews_clean.csv";
+    ReviewArray reviews;
+    string filename = "C:/path/to/reviews_clean.csv"; // <- Update path
 
-    if (myReviewArray.LoadReviewsFromCSV(filename)) {
-        cout << "Reviews loaded successfully!\n";
-        myReviewArray.DisplayReviews();
+    if (reviews.LoadReviewsFromCSV(filename)) {
+        cout << "Reviews loaded successfully!\n" << endl;
+        reviews.DisplayReviews();
+        reviews.MostFrequentWordsIn1StarReviews();
     } else {
-        cout << "Failed to load reviews.\n";
+        cout << "Failed to load reviews." << endl;
     }
 
     return 0;
