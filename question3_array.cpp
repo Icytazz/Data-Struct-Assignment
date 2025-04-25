@@ -155,7 +155,6 @@ int main() {
 
     if (reviews.LoadReviewsFromCSV(filename)) {
         cout << "Reviews loaded successfully!\n" << endl;
-        reviews.DisplayReviews();
         reviews.MostFrequentWordsIn1StarReviews();
     } else {
         cout << "Failed to load reviews." << endl;
