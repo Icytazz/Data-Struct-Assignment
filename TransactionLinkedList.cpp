@@ -102,39 +102,6 @@ struct TransactionLinked{
         return true;
     }
 
-    void PercentageElectronicsCreditCard() {
-    int electronicsTotal = 0;
-    int electronicsCreditCard = 0;
-
-    Transaction* current = Entry;
-
-    while (current != nullptr) {
-        // Case-insensitive check for "electronics" and "credit card"
-        string categoryLower = current->Category;
-        string paymentLower = current->PaymentMethod;
-
-        // Convert both to lowercase
-        for (auto &c : categoryLower) c = tolower(c);
-        for (auto &p : paymentLower) p = tolower(p);
-
-        if (categoryLower == "electronics") {
-            electronicsTotal++;
-            if (paymentLower == "credit card") {
-                electronicsCreditCard++;
-            }
-        }
-
-        current = current->next;
-    }
-
-    if (electronicsTotal == 0) {
-        cout << "No electronics purchases found." << endl;
-        return;
-    }
-
-    float percentage = (static_cast<float>(electronicsCreditCard) / electronicsTotal) * 100.0f;
-    cout << "Percentage of electronics purchases made with credit card: " << percentage << "%" << endl;
-}
 
 };
 
@@ -145,7 +112,6 @@ int main(){
     if (myTransactions.LoadReviewsFromCSV(filename, myTransactions)) {
         cout << "Reviews loaded successfully!" << endl;
         myTransactions.displaynodes();
-        myTransactions.PercentageElectronicsCreditCard();
     } else {
         cout << "Failed to load reviews." << endl;
     }
