@@ -32,8 +32,6 @@ struct ReviewArray {
             reviews[size].Rating = rating;
             reviews[size].ReviewTxt = reviewTxt;
             size++;
-        } else {
-            cout << "Error: Reached maximum number of reviews." << endl;
         }
     }
 
@@ -64,7 +62,6 @@ struct ReviewArray {
                 int rating = stoi(ratingStr);
                 AddReview(prodID, custID, rating, reviewTxt);
             } catch (...) {
-                cout << "Warning: Skipping invalid line." << endl;
                 continue;
             }
         }
@@ -128,7 +125,7 @@ struct ReviewArray {
             }
         }
 
-        // Simple bubble sort (descending order)
+        // Sort descending by frequency
         for (int i = 0; i < wordCountSize - 1; ++i) {
             for (int j = 0; j < wordCountSize - i - 1; ++j) {
                 if (wordList[j].count < wordList[j + 1].count) {
@@ -144,12 +141,12 @@ struct ReviewArray {
         cout << "Rank   Word         Frequency\n";
         cout << "---------------------------------------------------------------\n";
 
-        for (int i = 0; i < 10 && i < wordCountSize; ++i) {
+        for (int i = 0; i < topN && i < wordCountSize; ++i) {
             cout.width(6); cout << left << (to_string(i + 1) + ".");
-            cout.width(13); cout << left << wordCounts[i].word;
-            cout << wordCounts[i].count << endl;
+            cout.width(13); cout << left << wordList[i].word;
+            cout << wordList[i].count << endl;
         }
-
+    }
 };
 
 int main() {
