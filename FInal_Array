@@ -1,0 +1,239 @@
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <cstring>
+#include <cstdlib>
+#include <map>
+#include <vector>
+#include <algorithm>
+
+using namespace std;
+
+const int MAX_TRANSACTIONS = 10000;
+const int MAX_REVIEWS = 10000;
+
+struct Transaction {
+    string customerID;
+    string product;
+    string category;
+    float price;
+    string date;
+    string paymentMethod;
+};
+
+struct Review {
+    string productID;
+    string customerID;
+    int rating;
+    string reviewText;
+};
+
+Transaction transactions[MAX_TRANSACTIONS];
+Review reviews[MAX_REVIEWS];
+int transactionCount = 0;
+int reviewCount = 0;
+
+bool parseTransaction(const string &line, Transaction &t) {
+    size_t pos = 0;
+    string token;
+    string temp = line;
+    string fields[6];
+    int i = 0;
+
+    while ((pos = temp.find(',')) != string::npos && i < 5) {
+        fields[i++] = temp.substr(0, pos);
+        temp.erase(0, pos + 1);
+    }
+    fields[i] = temp;
+
+    if (i < 5) return false;
+
+    t.customerID = fields[0];
+    t.product = fields[1];
+    t.category = fields[2];
+    t.price = stof(fields[3]);
+    t.date = fields[4];
+    t.paymentMethod = fields[5];
+
+    return true;
+}
+
+bool parseReview(const string &line, Review &r) {
+    stringstream ss(line);
+    string field;
+    vector<string> fields;
+
+    while (getline(ss, field, ',')) {
+        fields.push_back(field);
+    }
+
+    if (fields.size() < 4) return false;
+
+    r.productID = fields[0];
+    r.customerID = fields[1];
+    r.rating = stoi(fields[2]);
+    r.reviewText = fields[3];
+
+    for (size_t i = 4; i < fields.size(); ++i) {
+        r.reviewText += "," + fields[i];
+    }
+
+    return true;
+}
+
+void sortByDate(Transaction transactions[], int n) {
+    for (int i = 0; i < n - 1; ++i)
+        for (int j = 0; j < n - i - 1; ++j)
+            if (transactions[j].date > transactions[j + 1].date)
+                swap(transactions[j], transactions[j + 1]);
+}
+
+void showSortedTransactions(Transaction transactions[], int n) {
+    cout << "\n--- Transactions Sorted by Date ---\n";
+    for (int i = 0; i < n; ++i) {
+        cout << "Date: " << transactions[i].date
+             << " | CustomerID: " << transactions[i].customerID
+             << " | Product: " << transactions[i].product
+             << " | Category: " << transactions[i].category
+             << " | Price: RM" << transactions[i].price
+             << " | Payment: " << transactions[i].paymentMethod << "\n";
+    }
+}
+
+void filterTransactions(Transaction transactions[], int n) {
+    string filterCategory, filterPayment;
+    cout << "\nEnter category to filter: ";
+    getline(cin, filterCategory);
+    cout << "Enter payment method to filter: ";
+    getline(cin, filterPayment);
+
+    int categoryCount = 0;
+    int filteredCount = 0;
+
+    for (int i = 0; i < n; ++i) {
+        if (transactions[i].category == filterCategory) {
+            categoryCount++;
+            if (transactions[i].paymentMethod == filterPayment) {
+                filteredCount++;
+            }
+        }
+    }
+
+    cout << "\nCategory: " << filterCategory << " | Payment Method: " << filterPayment << "\n";
+    cout << "Matching transactions: " << filteredCount << " out of " << categoryCount << "\n";
+
+    if (categoryCount > 0) {
+        float percentage = (filteredCount * 100.0f) / categoryCount;
+        cout << "Percentage: " << percentage << "%\n";
+    } else {
+        cout << "No transactions found in that category.\n";
+    }
+}
+
+void analyze1StarReviews() {
+    map<string, int> wordFrequency;
+
+    for (int i = 0; i < reviewCount; ++i) {
+        if (reviews[i].rating == 1) {
+            stringstream ss(reviews[i].reviewText);
+            string word;
+
+            while (ss >> word) {
+                word.erase(remove_if(word.begin(), word.end(), ::ispunct), word.end());
+                transform(word.begin(), word.end(), word.begin(), ::tolower);
+
+                if (word.length() > 2) { 
+                    wordFrequency[word]++;
+                }
+            }
+        }
+    }
+
+    vector<pair<string, int>> sortedWords(wordFrequency.begin(), wordFrequency.end());
+    sort(sortedWords.begin(), sortedWords.end(), [](auto &a, auto &b) {
+        return b.second < a.second; 
+    });
+
+    cout << "\n--- Top Frequent Words in 1-Star Reviews ---\n";
+    int displayed = 0;
+    for (auto &p : sortedWords) {
+        cout << p.first << " : " << p.second << "\n";
+        if (++displayed >= 10) break; 
+    }
+}
+
+void showAllReviews() {
+    cout << "\n--- All Reviews ---\n";
+    for (int i = 0; i < reviewCount; ++i) {
+        cout << "Product ID: " << reviews[i].productID
+             << " | Customer ID: " << reviews[i].customerID
+             << " | Rating: " << reviews[i].rating
+             << " | Review: " << reviews[i].reviewText << "\n";
+    }
+}
+
+int main() {
+    string line;
+
+    ifstream file1("C:\\SEMESTER 4\\Data Structures\\project1_code\\transactions_clean.csv");
+    if (!file1.is_open()) {
+        cout << "Failed to open transactions file.\n";
+        return 1;
+    }
+    getline(file1, line); 
+    while (getline(file1, line) && transactionCount < MAX_TRANSACTIONS) {
+        Transaction t;
+        if (parseTransaction(line, t)) {
+            transactions[transactionCount++] = t;
+        }
+    }
+    file1.close();
+    sortByDate(transactions, transactionCount);
+    cout << "Transactions loaded and sorted: " << transactionCount << "\n";
+
+    ifstream file2("C:\\SEMESTER 4\\Data Structures\\project1_code\\reviews_clean.csv");
+    if (!file2.is_open()) {
+        cout << "Failed to open reviews file.\n";
+        return 1;
+    }
+    getline(file2, line); 
+    while (getline(file2, line) && reviewCount < MAX_REVIEWS) {
+        Review r;
+        if (parseReview(line, r)) {
+            reviews[reviewCount++] = r;
+        }
+    }
+    file2.close();
+    cout << "Reviews loaded: " << reviewCount << "\n";
+
+    // Main Menu
+    while (true) {
+        cout << "\n--- MAIN MENU ---\n";
+        cout << "1. Show all transactions sorted by date\n";
+        cout << "2. Filter transactions by category and payment method\n";
+        cout << "3. Analyze 1-star reviews (most frequent words)\n";
+        cout << "4. Show all reviews\n";
+        cout << "5. Exit\n";
+        cout << "Enter your choice: ";
+
+        string choice;
+        getline(cin, choice);
+
+        if (choice == "1") {
+            showSortedTransactions(transactions, transactionCount);
+        } else if (choice == "2") {
+            filterTransactions(transactions, transactionCount);
+        } else if (choice == "3") {
+            analyze1StarReviews();
+        } else if (choice == "4") {
+            showAllReviews();
+        } else if (choice == "5") {
+            cout << "Thanks for using the system!\n";
+            break;
+        } else {
+            cout << "Invalid choice. Try again.\n";
+        }
+    }
+
+    return 0;
+}
