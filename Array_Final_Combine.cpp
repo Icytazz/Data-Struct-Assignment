@@ -118,7 +118,9 @@ void quickSortByDate(Transaction arr[], int low, int high) {
 
 void showSortedTransactions(Transaction arr[], int n) {
     cout << "\n--- Transactions Sorted by Date ---\n";
+    int counter=0;
     for (int i = 0; i < n; ++i) {
+        counter++;
         cout << "Date: " << arr[i].date
              << " | CustomerID: " << arr[i].customerID
              << " | Product: " << arr[i].product
@@ -126,6 +128,7 @@ void showSortedTransactions(Transaction arr[], int n) {
              << " | Price: RM" << arr[i].price
              << " | Payment: " << arr[i].paymentMethod << "\n";
     }
+    cout << "Total Number of Transactions: " << counter;
 }
 
 // Function 2: Filter by category and payment method
@@ -139,7 +142,7 @@ void filterTransactions(Transaction arr[], int n) {
     int categoryCount = 0;
     int filteredCount = 0;
 
-    Transaction filtered[100]; // just a temp array
+    Transaction filtered[100]; 
     int filteredIndex = 0;
 
     for (int i = 0; i < n; ++i) {
@@ -251,19 +254,22 @@ void analyze1StarReviews() {
 
 // Function 5: Show all reviews
 void showAllReviews() {
+    int counter = 0;
     cout << "\n--- All Reviews ---\n";
     for (int i = 0; i < reviewCount; ++i) {
+        counter++;
         cout << "Product ID: " << reviews[i].productID
              << " | Customer ID: " << reviews[i].customerID
              << " | Rating: " << reviews[i].rating
              << " | Review: " << reviews[i].reviewText << "\n";
     }
+    cout << "Total Number of Reviews: " << counter;
 }
 
 int main() {
     string line;
 
-    ifstream file1("C:\\SEMESTER 4\\Data Structures\\project1_code\\transactions_clean.csv");
+    ifstream file1("transactions_clean.csv");
     if (!file1.is_open()) {
         cout << "Failed to open transactions file.\n";
         return 1;
@@ -279,7 +285,7 @@ int main() {
     bubbleSortByDate(transactions, transactionCount); // Bubble sort initially
     cout << "Transactions loaded and sorted: " << transactionCount << "\n";
 
-    ifstream file2("C:\\SEMESTER 4\\Data Structures\\project1_code\\reviews_clean.csv");
+    ifstream file2("reviews_clean.csv");
     if (!file2.is_open()) {
         cout << "Failed to open reviews file.\n";
         return 1;
