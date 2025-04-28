@@ -3,10 +3,12 @@
 #include <sstream>
 #include <cstring>
 #include <cstdlib>
+#include <chrono>
 #include <map>
 #include <algorithm>
 
 using namespace std;
+using namespace chrono;
 
 const int MAX_TRANSACTIONS = 10000;
 const int MAX_REVIEWS = 10000;
@@ -128,7 +130,7 @@ void showSortedTransactions(Transaction arr[], int n) {
              << " | Price: RM" << arr[i].price
              << " | Payment: " << arr[i].paymentMethod << "\n";
     }
-    cout << "Total Number of Transactions: " << counter;
+    cout << "Total Number of Transactions: " << counter << endl;
 }
 
 // Function 2: Filter by category and payment method
@@ -263,7 +265,7 @@ void showAllReviews() {
              << " | Rating: " << reviews[i].rating
              << " | Review: " << reviews[i].reviewText << "\n";
     }
-    cout << "Total Number of Reviews: " << counter;
+    cout << "Total Number of Reviews: " << counter << endl;
 }
 
 int main() {
@@ -315,15 +317,45 @@ int main() {
         getline(cin, choice);
 
         if (choice == "1") {
+            auto start = high_resolution_clock::now();
+
             showSortedTransactions(transactions, transactionCount);
+        
+                auto end = high_resolution_clock::now();
+                auto duration = duration_cast<microseconds>(end - start);
+                cout << "Time taken: " << duration.count() << " microseconds" << endl;
         } else if (choice == "2") {
+            auto start = high_resolution_clock::now();
+
             filterTransactions(transactions, transactionCount);
+        
+                auto end = high_resolution_clock::now();
+                auto duration = duration_cast<microseconds>(end - start);
+                cout << "Time taken: " << duration.count() << " microseconds" << endl;
         } else if (choice == "3") {
+            auto start = high_resolution_clock::now();
+
             filterTransactionsByDate(transactions, transactionCount);
+        
+                auto end = high_resolution_clock::now();
+                auto duration = duration_cast<microseconds>(end - start);
+                cout << "Time taken: " << duration.count() << " microseconds" << endl;
         } else if (choice == "4") {
+            auto start = high_resolution_clock::now();
+
             analyze1StarReviews();
+        
+                auto end = high_resolution_clock::now();
+                auto duration = duration_cast<microseconds>(end - start);
+                cout << "Time taken: " << duration.count() << " microseconds" << endl;
         } else if (choice == "5") {
+            auto start = high_resolution_clock::now();
+
             showAllReviews();
+        
+                auto end = high_resolution_clock::now();
+                auto duration = duration_cast<microseconds>(end - start);
+                cout << "Time taken: " << duration.count() << " microseconds" << endl;
         } else if (choice == "6") {
             cout << "Thanks for using the system!\n";
             break;
