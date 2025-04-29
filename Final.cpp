@@ -6,12 +6,15 @@
 #include <chrono>
 #include <cstdlib>
 #include <iomanip>
+#include <limits>
+#include <algorithm>
 
 using namespace std;
 using namespace chrono;
 
 const int MAX_REVIEWS = 10000;
 const int MAX_WORDS = 1000;
+const int MAX_TRANSACTIONS = 10000;
 
 struct Transaction{
     Transaction* next;
@@ -77,21 +80,22 @@ struct TransactionsLink{
         }
     }
 
-    void displaynodes(){
-        Transaction* FindEnd = Entry;
-        if(Entry == nullptr){
-            cout << "List is empty, no reviews to display." << endl;
+    void displayTransactions() {
+        Transaction* current = Entry;
+        if (Entry == nullptr) {
+            cout << "List is empty, no transactions to display." << endl;
             return;
         }
-
-        while (FindEnd != nullptr){
-            cout << "CusID: " << FindEnd->CusID
-            << ", Product: " << FindEnd->Product
-            << ", Category: " << FindEnd->Category
-            << ", Date: " << FindEnd->Date
-            << ", Payment Method: " << FindEnd->PaymentMethod
-            << ", Price: " << FindEnd->Price << endl;            
-            FindEnd = FindEnd->next;
+    
+        while (current != nullptr) {
+            cout << "Date: " << current->Date 
+                 << " | CustomerID: " << current->CusID
+                 << " | Product: " << current->Product
+                 << " | Category: " << current->Category
+                 << " | Price: RM" << fixed << setprecision(2) << current->Price
+                 << " | Payment: " << current->PaymentMethod << endl;
+            
+            current = current->next;
         }
     }
 
@@ -134,8 +138,6 @@ struct TransactionsLink{
     }
 
     void insertionSortByDate() {
-        auto start = high_resolution_clock::now();
-    
         if (Entry == nullptr || Entry->next == nullptr) return;
     
         Transaction* sorted = nullptr; // New sorted linked list
@@ -146,12 +148,12 @@ struct TransactionsLink{
     
             // Insert current into sorted list at correct position
             if (sorted == nullptr || current->Date < sorted->Date) {
-                // if the new date in original linkedlist(current.date) is smaller than head.date, it becomes the head of new linkedlist
+                // if the new Date in original linkedlist(current.Date) is smaller than head.Date, it becomes the head of new linkedlist
                 current->next = sorted;
                 sorted = current;
             } else {
                 Transaction* temp = sorted;
-                // Traverse sorted list to find first node where next node's date is >= current node's date
+                // Traverse sorted list to find first node where next node's Date is >= current node's Date
                 while (temp->next != nullptr && temp->next->Date < current->Date) {
                     temp = temp->next;
                 }
@@ -167,10 +169,6 @@ struct TransactionsLink{
         }
         // Change the linked list originally to the sorted linked list
         Entry = sorted;
-    
-        auto end = high_resolution_clock::now();
-        auto duration = duration_cast<microseconds>(end - start);
-        cout << "Insertion sort by Date took: " << duration.count() << " microseconds" << endl;
     }
 
     void bubbleSortByDate() {
@@ -208,13 +206,89 @@ struct TransactionsLink{
                     swapped = true;
                     prev = next;
                 } else {
-                    // if first date is smaller, go to next node (current node becomes prev)
+                    // if first Date is smaller, go to next node (current node becomes prev)
                     prev = ptr1;
                     ptr1 = ptr1->next;
                 }
             }
             lptr = ptr1;
         } while (swapped);
+    }
+
+    void categoryPercentage(string userCat, string userPayment) {
+        // Calculate statistics first
+        int categoryTotal = 0;
+        int categoryPayment = 0;
+        
+        Transaction* current = Entry;
+        
+        // Convert search terms to lowercase once
+        string lowerUserCategory = userCat;
+        string lowerUserPayment = userPayment;
+        transform(lowerUserCategory.begin(), lowerUserCategory.end(), 
+                 lowerUserCategory.begin(), ::tolower);
+        transform(lowerUserPayment.begin(), lowerUserPayment.end(), 
+                 lowerUserPayment.begin(), ::tolower);
+        
+        // First pass: count matching transactions
+        while (current != nullptr) {
+            string transactionCategory = current->Category;
+            string transactionPayment = current->PaymentMethod;
+            
+            transform(transactionCategory.begin(), transactionCategory.end(), 
+                     transactionCategory.begin(), ::tolower);
+            transform(transactionPayment.begin(), transactionPayment.end(), 
+                     transactionPayment.begin(), ::tolower);
+            
+            if (transactionCategory == lowerUserCategory) {
+                categoryTotal++;
+                if (transactionPayment == lowerUserPayment) {
+                    categoryPayment++;
+                }
+            }
+            current = current->next;
+        }
+        
+        // Output statistics
+        cout << "Category: " << userCat << " | Payment Method: " << userPayment << endl;
+        cout << "Matching transactions: " << categoryPayment << " out of " << categoryTotal << endl;
+        
+        if (categoryTotal == 0) {
+            cout << "Percentage: 0%" << endl;
+            return;
+        }
+        
+        float percentage = (static_cast<float>(categoryPayment) / categoryTotal) * 100.0f;
+        cout << fixed << setprecision(4);
+        cout << "Percentage: " << percentage << "%" << endl;
+        
+        // Second pass: display matching transactions (up to 10)
+        cout << "\n--- Showing up to 10 filtered transactions ---" << endl;
+        current = Entry;
+        int displayed = 0;
+        
+        while (current != nullptr && displayed < 10) {
+            string transactionCategory = current->Category;
+            string transactionPayment = current->PaymentMethod;
+            
+            transform(transactionCategory.begin(), transactionCategory.end(), 
+                     transactionCategory.begin(), ::tolower);
+            transform(transactionPayment.begin(), transactionPayment.end(), 
+                     transactionPayment.begin(), ::tolower);
+            
+            if (transactionCategory == lowerUserCategory && 
+                transactionPayment == lowerUserPayment) {
+                // Format the output to match your example
+                cout << "Date: " << current->Date 
+                     << " | CustomerID: " << current->CusID
+                     << " | Product: " << current->Product
+                     << " | Category: " << current->Category
+                     << " | Price: RM" << fixed << setprecision(2) << current->Price
+                     << " | Payment: " << current->PaymentMethod << endl;
+                displayed++;
+            }
+            current = current->next;
+        }
     }
     
     int countNodes() {
@@ -243,27 +317,165 @@ struct TransactionsLink{
         // Process each line
         while (getline(file, line)) {
             stringstream ss(line);
-            string prodID, prod, cat, date, payment, priceStr;
+            string prodID, prod, cat, Date, payment, priceStr;
             
             // Parse CSV line
             getline(ss, prodID, ',');
             getline(ss, prod, ',');
             getline(ss, cat, ',');
             getline(ss, priceStr, ',');
-            getline(ss, date, ',');
+            getline(ss, Date, ',');
             getline(ss, payment, ','); 
         
             // Convert rating to integer
             float price = stof(priceStr);
             
             // Add to linked list
-            list.AddNew(prodID, prod, cat, price, date, payment);
+            list.AddNew(prodID, prod, cat, price, Date, payment);
         }
         
         file.close();
         return true;
     }
 
+};
+
+struct TransactionsArray {
+    Transaction transactions[MAX_TRANSACTIONS];
+    int size = 0;
+    int sortType = 0; 
+
+    bool LoadTransactionsFromCSV(const string& filename) {
+        ifstream file(filename);
+        if (!file.is_open()) {
+            cout << "Error: Could not open file " << filename << endl;
+            return false;
+        }
+    
+        string line;
+        getline(file, line); // skip header
+    
+        while (getline(file, line) && size < MAX_TRANSACTIONS) {
+            stringstream ss(line);
+            string customerID, product, category, priceStr, Date, payment;
+            getline(ss, customerID, ',');
+            getline(ss, product, ',');
+            getline(ss, category, ',');
+            getline(ss, priceStr, ',');
+            getline(ss, Date, ',');
+            getline(ss, payment);
+    
+            try {
+                // Create a Transaction object first
+                Transaction newTransaction;
+                newTransaction.CusID = customerID;
+                newTransaction.Product = product;
+                newTransaction.Category = category;
+                newTransaction.Price = stof(priceStr);
+                newTransaction.Date = Date;
+                newTransaction.PaymentMethod = payment;
+                
+                // Then assign it to the array
+                transactions[size++] = newTransaction;
+            } catch (...) {
+                continue;
+            }
+        }
+        return true;
+    }
+
+    void bubbleSortByDate() {
+        for (int i = 0; i < size - 1; ++i) {
+            for (int j = 0; j < size - i - 1; ++j) {
+                if (transactions[j].Date > transactions[j + 1].Date) {
+                    swap(transactions[j], transactions[j + 1]);
+                }
+            }
+        }
+        sortType = 1;
+    }
+
+    void insertionSortByDate() {
+        for (int i = 1; i < size; ++i) {
+            Transaction key = transactions[i];
+            int j = i - 1;
+            while (j >= 0 && transactions[j].Date > key.Date) {
+                transactions[j + 1] = transactions[j];
+                --j;
+            }
+            transactions[j + 1] = key;
+        }
+        sortType = 2;
+    }
+
+    void displayTransactions() const {
+        cout << "\n--- Transactions Sorted by Date ---\n";
+        for (int i = 0; i < size; ++i) {
+            const auto& t = transactions[i];
+            cout << "Date: " << t.Date
+                 << " | CustomerID: " << t.CusID
+                 << " | Product: " << t.Product
+                 << " | Category: " << t.Category
+                 << " | Price: RM" << t.Price
+                 << " | Payment: " << t.PaymentMethod << "\n";
+        }
+        cout << "Total Number of Transactions: " << size << endl;
+    }
+
+    void categoryPercentage(string userCat, string userPayment) {
+        int categoryCount = 0;
+        int filteredCount = 0;
+        Transaction toDisplay[10]; // only store 10 for display
+        int displayIndex = 0;
+    
+        for (int i = 0; i < size; ++i) {
+            if (transactions[i].Category == userCat) {
+                categoryCount++;
+                if (transactions[i].PaymentMethod == userPayment) {
+                    filteredCount++;
+                    if (displayIndex < 10) {
+                        toDisplay[displayIndex++] = transactions[i];
+                    }
+                }
+            }
+        }
+    
+        cout << "\n" << filteredCount << " " << userPayment << " out of " << categoryCount << " " << userCat << "\n";
+    
+        if (filteredCount > 0) {
+            cout << "\n--- Showing up to 10 filtered transactions ---\n";
+            for (int i = 0; i < displayIndex; ++i) {
+                const auto& t = toDisplay[i];
+                cout << "Date: " << t.Date
+                     << " | CustomerID: " << t.CusID
+                     << " | Product: " << t.Product
+                     << " | Category: " << t.Category
+                     << " | Price: RM" << t.Price
+                     << " | Payment: " << t.PaymentMethod << "\n";
+            }
+        } else {
+            cout << "No matching transactions found.\n";
+        }
+    }
+
+    void filterByDateRange(string startDate, string endDate) const {
+
+        cout << "\n--- Transactions from " << startDate << " to " << endDate << " ---\n";
+        bool found = false;
+        for (int i = 0; i < size; ++i) {
+            if (transactions[i].Date >= startDate && transactions[i].Date <= endDate) {
+                const auto& t = transactions[i];
+                cout << "Date: " << t.Date
+                     << " | CustomerID: " << t.CusID
+                     << " | Product: " << t.Product
+                     << " | Category: " << t.Category
+                     << " | Price: RM" << t.Price
+                     << " | Payment: " << t.PaymentMethod << "\n";
+                found = true;
+            }
+        }
+        if (!found) cout << "No transactions found in the given range.\n";
+    }
 };
 
 struct ReviewLink{
@@ -371,7 +583,7 @@ struct ReviewLink{
         return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
     }
 
-    // Function to add or update word in our frequency list
+    // Function to add or upDate word in our frequency list
     void addWord(string word) {
         if (word.empty() || word.length() <= 2) return;
 
@@ -621,38 +833,46 @@ struct ReviewArray {
 };
 
 int main(){
+    cout << "Program started..." << endl;
     ReviewArray revArray;
     ReviewLink revList;
     TransactionsLink traList;
-    string revFile = "C:/Users/User/OneDrive - Asia Pacific University/SEM_4/Data_Structures/Assignment/reviews_clean.csv";
-    string traFile = "C:/Users/User/OneDrive - Asia Pacific University/SEM_4/Data_Structures/Assignment/transactions_clean.csv";
+    TransactionsArray traArray;
+    string revFile = "reviews_clean.csv";
+    string traFile = "transactions_clean.csv";
     revArray.LoadReviewsFromCSV(revFile);
     revList.LoadReviewsFromCSV(revFile, revList);
     traList.LoadTransactionsFromCSV(traFile, traList);
+    traArray.LoadTransactionsFromCSV(traFile);
     int mainChoice, subChoice, operationChoice;
     int SizeRevArray = sizeof(revArray.reviews);
     
     while(true) {
-        system("cls");
-        
         cout << "Choose the structure you want to use:\n";
         cout << "1. Array\n";
         cout << "2. Linked List\n";
         cout << "3. Exit\n";
         cout << "Enter your choice: ";
-        cin >> mainChoice;
         
-        if(mainChoice == 3) {
-            break; // Exit program
-        }
-        
-        if(mainChoice != 1 && mainChoice != 2) {
-            cout << "Invalid choice. Please try again.\n";
+        // ValiDate input
+        if (!(cin >> mainChoice)) {
+            cin.clear(); // Clear error flag
+            cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Discard bad input
+            cout << "Invalid input. Please enter a number (1-3).\n";
             system("pause");
             continue;
         }
         
-        // Submenu for Array or Linked List
+        if (mainChoice == 3) {
+            break; // Exit program
+        }
+        
+        if (mainChoice != 1 && mainChoice != 2) {
+            cout << "Invalid choice. Please enter 1, 2, or 3.\n";
+            system("pause");
+            continue;
+        }
+        
         system("cls");
         cout << (mainChoice == 1 ? "Array" : "Linked List") << endl;
         cout << "1. Reviews\n";
@@ -672,54 +892,59 @@ int main(){
         }
         
         // Reviews Operations
-        if(subChoice == 1) {
-            system("cls");
-            cout << (mainChoice == 1 ? "Array: Reviews" : "Linked List: Reviews") << endl;
+        if(subChoice == 1) while (true) {
+            cout << (mainChoice == 1 ? "\nArray: Reviews" : "\nLinked List: Reviews") << endl;
             cout << "1. Sort Top 10 Words Used in 1-Star Reviews\n";
             cout << "2. Display Reviews\n";
-            cout << "3. Back\n";
+            cout << "3. Clear Terminal\n";
+            cout << "4. Back\n";
             cout << "Enter your choice: ";
-            cin >> operationChoice;
             
-            if(operationChoice == 3) {
+            // ValiDate input
+            if (!(cin >> operationChoice)) {
+                cin.clear(); // Clear error flag
+                cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Discard bad input
+                cout << "Invalid choice.\n";
+                system("pause");
+                system("cls");
                 continue;
             }
             
-            if(operationChoice == 1) {
-                if(mainChoice == 1) {
+            if (operationChoice == 4) {
+                break;  // Exit the loop to go back to previous menu
+            }
+        
+            if (operationChoice == 3) {
+                system("cls");
+                continue;  // Show menu again after clearing
+            }
+            
+            if (operationChoice == 1) {
+                if (mainChoice == 1) {
                     auto start = high_resolution_clock::now();
-
                     revArray.sortTop10Words(10);
-
                     auto end = high_resolution_clock::now();
                     auto duration = duration_cast<microseconds>(end - start);
                     cout << "Time taken: " << duration.count() << " microseconds" << endl;
                 } else {
                     auto start = high_resolution_clock::now();
-                    
                     revList.sortTop10Words(10);
-
                     auto end = high_resolution_clock::now();
                     auto duration = duration_cast<microseconds>(end - start);
                     cout << "Time taken: " << duration.count() << " microseconds" << endl;
                 }
             } 
-            else if(operationChoice == 2) {
-                if(mainChoice == 1) {
+            else if (operationChoice == 2) {
+                if (mainChoice == 1) {
                     auto start = high_resolution_clock::now();
-
                     revArray.displayReview();
-                    
                     auto end = high_resolution_clock::now();
                     auto duration = duration_cast<microseconds>(end - start);
                     cout << "Space used: " << SizeRevArray << " bytes" << endl;
                     cout << "Time taken: " << duration.count() << " microseconds" << endl;
-
                 } else {
                     auto start = high_resolution_clock::now();
-                    
                     revList.displayReview();
-                    
                     auto end = high_resolution_clock::now();
                     auto duration = duration_cast<microseconds>(end - start);
                     cout << "Time taken: " << duration.count() << " microseconds" << endl;
@@ -727,56 +952,151 @@ int main(){
             }
             else {
                 cout << "Invalid choice.\n";
+                system("pause");
+                system("cls");
+                continue;  // Skip the pause below and show menu again
             }
-            system("pause");
         }
         // Transactions Operations
         else if(subChoice == 2) {
-            system("cls");
-            cout << (mainChoice == 1 ? "Array: Transactions" : "Linked List: Transactions") << endl;
-            cout << "1. Sort Customer Transactions by Date (BubbleSort)\n";
-            cout << "2. Sort Customer Transactions by Date (InsertionSort)\n";
-            cout << "3. Search and Filter Transactions by Category and Payment Method\n";
-            cout << "4. Filter transactions by date range\n";
-            cout << "5. Display Transactions by date\n";
-            cout << "6. Back\n";
-            cout << "Enter your choice: ";
-            cin >> operationChoice;
-            
-            if(operationChoice == 6) {
-                continue; // Go back to previous menu
-            }
-            
-            switch(operationChoice) {
-                case 1:
-                    if(mainChoice == 1) {
-                        // traLink.bubbleSortByDate();
-                    } else {
-                        // traLink.bubbleSortByDate();
-                    }
-                    break;
-                case 2:
-                    if(mainChoice == 1) {
-                        // traLink.quickSortByDate();
-                    } else {
-                        // traLink.quickSortByDate();
-                    }
-                    break;
-                case 3:
-                    // Search and filter implementation
-                    break;
-                case 4:
-                    // Filter by date range implementation
-                    break;
-                case 5:
-                    // Display transactions by date implementation
-                    break;
-                default:
+            while (true) {
+                cout << (mainChoice == 1 ? "\nArray: Transactions" : "\nLinked List: Transactions") << endl;
+                cout << "1. Sort Customer Transactions by Date (BubbleSort)\n";
+                cout << "2. Sort Customer Transactions by Date (InsertionSort)\n";
+                cout << "3. Search and Filter Transactions by Category and Payment Method\n";
+                cout << "4. Filter transactions by Date range\n";
+                cout << "5. Display Transactions\n";
+                cout << "6. Clear Terminal\n";
+                cout << "7. Back\n";
+                cout << "Enter your choice: ";
+                
+                // ValiDate input
+                if (!(cin >> operationChoice)) {
+                    cin.clear(); // Clear error flag
+                    cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Discard bad input
                     cout << "Invalid choice.\n";
+                    system("pause");
+                    system("cls");
+                    continue;
+                }
+                
+                if (operationChoice == 7) {
+                    break;  // Exit the loop to go back to previous menu
+                }
+            
+                if (operationChoice == 6) {
+                    system("cls");
+                    continue;  // Show menu again after clearing
+                }
+                
+                if (operationChoice == 1) {
+                    if (mainChoice == 1) {
+                        auto start = high_resolution_clock::now();
+                        traArray.bubbleSortByDate();
+                        auto end = high_resolution_clock::now();
+                        auto duration = duration_cast<microseconds>(end - start);
+                        cout << "Bubble sort by Date took(Array): " << duration.count() << " microseconds" << endl;
+                    } else {
+                        auto start = high_resolution_clock::now();
+                        traList.bubbleSortByDate();
+                        auto end = high_resolution_clock::now();
+                        auto duration = duration_cast<microseconds>(end - start);
+                        cout << "Bubble sort by Date took(Linked List): " << duration.count() << " microseconds" << endl;
+                    }
+                } 
+                else if (operationChoice == 2) {
+                    if (mainChoice == 1) {
+                        auto start = high_resolution_clock::now();
+                        traArray.insertionSortByDate();
+                        auto end = high_resolution_clock::now();
+                        auto duration = duration_cast<microseconds>(end - start);
+                        cout << "Insertion sort by Date took(Array): " << duration.count() << " microseconds" << endl;
+                    } else {
+                        auto start = high_resolution_clock::now();
+                        traList.insertionSortByDate();
+                        auto end = high_resolution_clock::now();
+                        auto duration = duration_cast<microseconds>(end - start);
+                        cout << "Insertion sort by Date took(Linked List): " << duration.count() << " microseconds" << endl;
+                    }
+                }
+                else if (operationChoice == 3) {
+                    if (mainChoice == 1) {
+                        string userCategory, userPayment;
+                        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                        cout << "Enter the category you want to analyze: ";
+                        while(getline(cin, userCategory) && userCategory.empty()) {
+                            cout << "Category cannot be empty. Please try again: ";
+                        }
+                        
+                        cout << "Enter the payment method you want to analyze: ";
+                        while(getline(cin, userPayment) && userPayment.empty()) {
+                            cout << "Payment method cannot be empty. Please try again: ";
+                        }
+                        
+                        auto start = high_resolution_clock::now();
+                        traArray.categoryPercentage(userCategory, userPayment);
+                        auto end = high_resolution_clock::now();
+                        auto duration = duration_cast<microseconds>(end - start);
+                        cout << "Time taken: " << duration.count() << " microseconds" << endl;
+                    } else {
+                        string userCategory, userPayment;
+                        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                        cout << "Enter the category you want to analyze: ";
+                        while(getline(cin, userCategory) && userCategory.empty()) {
+                            cout << "Category cannot be empty. Please try again: ";
+                        }
+                        
+                        cout << "Enter the payment method you want to analyze: ";
+                        while(getline(cin, userPayment) && userPayment.empty()) {
+                            cout << "Payment method cannot be empty. Please try again: ";
+                        }
+                        
+                        auto start = high_resolution_clock::now();
+                        traList.categoryPercentage(userCategory, userPayment);
+                        auto end = high_resolution_clock::now();
+                        auto duration = duration_cast<microseconds>(end - start);
+                        cout << "Time taken: " << duration.count() << " microseconds" << endl;
+                    }
+                }
+                else if (operationChoice == 4) {
+                    if (mainChoice == 1) {
+                        // traArray.filterByDateRange();
+                        string startDate, endDate;
+                        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                        cout << "Enter start Date (YYYY-MM-DD): ";
+                        while(getline(cin, startDate) && startDate.empty()) {
+                            cout << "Date cannot be empty ";
+                        }
+                        
+                        cout << "Enter end Date (YYYY-MM-DD): ";
+                        while(getline(cin, endDate) && endDate.empty()) {
+                            cout << "Date cannot be empty ";
+                        }
+                        
+                        auto start = high_resolution_clock::now();
+                        traArray.filterByDateRange(startDate, endDate);
+                        auto end = high_resolution_clock::now();
+                        auto duration = duration_cast<microseconds>(end - start);
+                        cout << "Time taken: " << duration.count() << " microseconds" << endl;
+                    } else {
+                        // traList.filterByDateRange();
+                    }
+                }
+                else if (operationChoice == 5) {
+                    if (mainChoice == 1) {
+                        traArray.displayTransactions();
+                    } else {
+                        traList.displayTransactions();
+                    }
+                }
+                else {
+                    cout << "Invalid choice.\n";
+                    system("pause");
+                    system("cls");
+                    continue;
+                }
             }
-            system("pause");
         }
-    }
-    
+}    
     return 0;    
 }
