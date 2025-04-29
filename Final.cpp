@@ -3,8 +3,12 @@
 #include <sstream>
 #include <string>
 #include <cctype>
+#include <chrono>
+#include <cstdlib>
 #include <iomanip>
+
 using namespace std;
+using namespace chrono;
 
 const int MAX_REVIEWS = 10000;
 const int MAX_WORDS = 1000;
@@ -129,6 +133,46 @@ struct TransactionsLink{
         } while (swapped);
     }
 
+    void insertionSortByDate() {
+        auto start = high_resolution_clock::now();
+    
+        if (Entry == nullptr || Entry->next == nullptr) return;
+    
+        Transaction* sorted = nullptr; // New sorted linked list
+    
+        Transaction* current = Entry;
+        while (current != nullptr) {
+            Transaction* next = current->next;
+    
+            // Insert current into sorted list at correct position
+            if (sorted == nullptr || current->Date < sorted->Date) {
+                // if the new date in original linkedlist(current.date) is smaller than head.date, it becomes the head of new linkedlist
+                current->next = sorted;
+                sorted = current;
+            } else {
+                Transaction* temp = sorted;
+                // Traverse sorted list to find first node where next node's date is >= current node's date
+                while (temp->next != nullptr && temp->next->Date < current->Date) {
+                    temp = temp->next;
+                }
+
+                // Inserting a node in between
+                // Makes the current node point to what temp is pointing to 
+                current->next = temp->next;
+                // Makes the node before the insertion point (temp) point to node
+                temp->next = current;
+            }
+            // the head of original linked list becomes the next node it points to
+            current = next;
+        }
+        // Change the linked list originally to the sorted linked list
+        Entry = sorted;
+    
+        auto end = high_resolution_clock::now();
+        auto duration = duration_cast<microseconds>(end - start);
+        cout << "Insertion sort by Date took: " << duration.count() << " microseconds" << endl;
+    }
+
     void bubbleSortByDate() {
         if (Entry == nullptr || Entry->next == nullptr) return;
     
@@ -181,6 +225,7 @@ struct TransactionsLink{
             current = current->next;
         }
         cout << "Current Number of Valid Transactions: "<< count << endl;
+        cout << "Space used: " << count * sizeof(Transaction) << " bytes" << endl;
         return count;
     }
 
@@ -273,6 +318,7 @@ struct ReviewLink{
         }
         
         cout << "Total reviews: " << count << endl;
+        cout << "Space used: " << count * sizeof(Review) << " bytes" << endl;
     }
 
     bool LoadReviewsFromCSV(const string& filename, ReviewLink& list) {
@@ -283,7 +329,6 @@ struct ReviewLink{
         }
         
         string line;
-        // Skip header line
         getline(file, line);
         
         // Process each line
@@ -356,15 +401,6 @@ struct ReviewLink{
         }
     }
 
-    void debugPrintWordList() {
-        cout << "\nDEBUG - Current Word List:\n";
-        WordNode* current = wordHead;
-        while (current != nullptr) {
-            cout << "'" << current->word << "': " << current->count << endl;
-            current = current->next;
-        }
-    }
-
 
     // Function to sort word frequency list (using bubble sort)
     void sortWordFrequency() {
@@ -392,7 +428,7 @@ struct ReviewLink{
     }
 
     // New function to find most frequent words in 1-star reviews
-    void findMostFrequentWordsIn1StarReviews(int topN = 10) {
+    void sortTop10Words(int topN = 10) {
         if (head == nullptr) {
             cout << "No reviews available." << endl;
             return;
@@ -412,7 +448,6 @@ struct ReviewLink{
             if (currentReview->Rating == 1) {
                 oneStarCount++;
                 string rawText = currentReview->ReviewTxt;
-                cout << "\nDEBUG - Processing review: " << rawText << endl;  // Debug output
 
                 string cleanText;
                 for (char c : rawText) {
@@ -426,24 +461,16 @@ struct ReviewLink{
                 stringstream ss(cleanText);
                 string word;
                 while (ss >> word) {
-                    cout << "DEBUG - Found word: " << word << endl;  // Debug output
                     addWord(word);
                 }
             }
             currentReview = currentReview->next;
         }
 
-        debugPrintWordList();  // Show word list before sorting
-
-        if (oneStarCount == 0) {
-            cout << "No 1-star reviews found." << endl;
-            return;
-        }
-
         sortWordFrequency();
 
         // Display final results
-        cout << "\nTop " << topN << " most frequent words in 1-star reviews:\n";
+        cout << "\nTop 10 most frequent words in 1-star reviews (" << oneStarCount << " reviews found):\n";
         cout << "----------------------------------------\n";
         cout << left << setw(6) << "Rank" << setw(16) << "Word" << "Frequency\n";
         cout << "----------------------------------------\n";
@@ -487,7 +514,7 @@ struct ReviewArray {
         }
 
         string line;
-        getline(file, line); // skip header
+        getline(file, line);
 
         while (getline(file, line)) {
             stringstream ss(line);
@@ -514,7 +541,7 @@ struct ReviewArray {
         return true;
     }
 
-    void DisplayReviews() {
+    void displayReview() {
         if (size == 0) {
             cout << "No reviews to display." << endl;
             return;
@@ -538,14 +565,14 @@ struct ReviewArray {
         return clean;
     }
 
-    void MostFrequentWordsIn1StarReviews(int topN = 10) {
+    void sortTop10Words(int topN = 10) {
         WordCount wordList[MAX_WORDS];
         int wordCountSize = 0;
-        int total1Star = 0;
+        int oneStarCount = 0;
 
         for (int i = 0; i < size; ++i) {
             if (reviews[i].Rating == 1) {
-                total1Star++;
+             oneStarCount++;
                 stringstream ss(reviews[i].ReviewTxt);
                 string word;
                 while (ss >> word) {
@@ -580,7 +607,7 @@ struct ReviewArray {
             }
         }
 
-        cout << "\nTop 10 most frequent words in 1-star reviews (" << total1Star << " reviews found):\n";
+        cout << "\nTop 10 most frequent words in 1-star reviews (" << oneStarCount << " reviews found):\n";
         cout << "---------------------------------------------------------------\n";
         cout << "Rank   Word         Frequency\n";
         cout << "---------------------------------------------------------------\n";
@@ -595,10 +622,161 @@ struct ReviewArray {
 
 int main(){
     ReviewArray revArray;
-    ReviewLink revLink;
-    TransactionsLink traLink;
+    ReviewLink revList;
+    TransactionsLink traList;
     string revFile = "C:/Users/User/OneDrive - Asia Pacific University/SEM_4/Data_Structures/Assignment/reviews_clean.csv";
     string traFile = "C:/Users/User/OneDrive - Asia Pacific University/SEM_4/Data_Structures/Assignment/transactions_clean.csv";
-
+    revArray.LoadReviewsFromCSV(revFile);
+    revList.LoadReviewsFromCSV(revFile, revList);
+    traList.LoadTransactionsFromCSV(traFile, traList);
+    int mainChoice, subChoice, operationChoice;
+    int SizeRevArray = sizeof(revArray.reviews);
     
+    while(true) {
+        system("cls");
+        
+        cout << "Choose the structure you want to use:\n";
+        cout << "1. Array\n";
+        cout << "2. Linked List\n";
+        cout << "3. Exit\n";
+        cout << "Enter your choice: ";
+        cin >> mainChoice;
+        
+        if(mainChoice == 3) {
+            break; // Exit program
+        }
+        
+        if(mainChoice != 1 && mainChoice != 2) {
+            cout << "Invalid choice. Please try again.\n";
+            system("pause");
+            continue;
+        }
+        
+        // Submenu for Array or Linked List
+        system("cls");
+        cout << (mainChoice == 1 ? "Array" : "Linked List") << endl;
+        cout << "1. Reviews\n";
+        cout << "2. Transactions\n";
+        cout << "3. Back to Main Menu\n";
+        cout << "Enter your choice: ";
+        cin >> subChoice;
+        
+        if(subChoice == 3) {
+            continue; 
+        }
+        
+        if(subChoice != 1 && subChoice != 2) {
+            cout << "Invalid choice. Please try again.\n";
+            system("pause");
+            continue;
+        }
+        
+        // Reviews Operations
+        if(subChoice == 1) {
+            system("cls");
+            cout << (mainChoice == 1 ? "Array: Reviews" : "Linked List: Reviews") << endl;
+            cout << "1. Sort Top 10 Words Used in 1-Star Reviews\n";
+            cout << "2. Display Reviews\n";
+            cout << "3. Back\n";
+            cout << "Enter your choice: ";
+            cin >> operationChoice;
+            
+            if(operationChoice == 3) {
+                continue;
+            }
+            
+            if(operationChoice == 1) {
+                if(mainChoice == 1) {
+                    auto start = high_resolution_clock::now();
+
+                    revArray.sortTop10Words(10);
+
+                    auto end = high_resolution_clock::now();
+                    auto duration = duration_cast<microseconds>(end - start);
+                    cout << "Time taken: " << duration.count() << " microseconds" << endl;
+                } else {
+                    auto start = high_resolution_clock::now();
+                    
+                    revList.sortTop10Words(10);
+
+                    auto end = high_resolution_clock::now();
+                    auto duration = duration_cast<microseconds>(end - start);
+                    cout << "Time taken: " << duration.count() << " microseconds" << endl;
+                }
+            } 
+            else if(operationChoice == 2) {
+                if(mainChoice == 1) {
+                    auto start = high_resolution_clock::now();
+
+                    revArray.displayReview();
+                    
+                    auto end = high_resolution_clock::now();
+                    auto duration = duration_cast<microseconds>(end - start);
+                    cout << "Space used: " << SizeRevArray << " bytes" << endl;
+                    cout << "Time taken: " << duration.count() << " microseconds" << endl;
+
+                } else {
+                    auto start = high_resolution_clock::now();
+                    
+                    revList.displayReview();
+                    
+                    auto end = high_resolution_clock::now();
+                    auto duration = duration_cast<microseconds>(end - start);
+                    cout << "Time taken: " << duration.count() << " microseconds" << endl;
+                }
+            }
+            else {
+                cout << "Invalid choice.\n";
+            }
+            system("pause");
+        }
+        // Transactions Operations
+        else if(subChoice == 2) {
+            system("cls");
+            cout << (mainChoice == 1 ? "Array: Transactions" : "Linked List: Transactions") << endl;
+            cout << "1. Sort Customer Transactions by Date (BubbleSort)\n";
+            cout << "2. Sort Customer Transactions by Date (InsertionSort)\n";
+            cout << "3. Search and Filter Transactions by Category and Payment Method\n";
+            cout << "4. Filter transactions by date range\n";
+            cout << "5. Display Transactions by date\n";
+            cout << "6. Back\n";
+            cout << "Enter your choice: ";
+            cin >> operationChoice;
+            
+            if(operationChoice == 6) {
+                continue; // Go back to previous menu
+            }
+            
+            switch(operationChoice) {
+                case 1:
+                    if(mainChoice == 1) {
+                        // traLink.bubbleSortByDate();
+                    } else {
+                        // traLink.bubbleSortByDate();
+                    }
+                    break;
+                case 2:
+                    if(mainChoice == 1) {
+                        // traLink.quickSortByDate();
+                    } else {
+                        // traLink.quickSortByDate();
+                    }
+                    break;
+                case 3:
+                    // Search and filter implementation
+                    break;
+                case 4:
+                    // Filter by date range implementation
+                    break;
+                case 5:
+                    // Display transactions by date implementation
+                    break;
+                default:
+                    cout << "Invalid choice.\n";
+            }
+            system("pause");
+        }
+    }
+    
+    return 0;    
 }
