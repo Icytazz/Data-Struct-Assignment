@@ -1,17 +1,15 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include <cstring>
-#include <cstdlib>
-#include <chrono>
-#include <map>
+#include <string>
 #include <algorithm>
+#include <chrono>
+#include <limits>  // Added this for numeric_limits
 
 using namespace std;
 using namespace chrono;
 
 const int MAX_TRANSACTIONS = 10000;
-const int MAX_REVIEWS = 10000;
 
 struct Transaction {
     string customerID;
@@ -23,261 +21,185 @@ struct Transaction {
 };
 
 struct TransactionsArray {
-    Transaction data[MAX_TRANSACTIONS];
+    Transaction transactions[MAX_TRANSACTIONS];
     int size = 0;
-};
+    int sortType = 0; // 1 for bubble, 2 for insertion
 
-struct Review {
-    string productID;
-    string customerID;
-    int rating;
-    string reviewText;
-};
-
-Review reviews[MAX_REVIEWS];
-int reviewCount = 0;
-
-bool LoadTransactionsFromCSV(const string& filename, TransactionsArray& txArray) {
-    ifstream file(filename);
-    if (!file.is_open()) {
-        cout << "Error: Could not open file " << filename << endl;
-        return false;
-    }
-
-    string line;
-    getline(file, line);
-
-    while (getline(file, line) && txArray.size < MAX_TRANSACTIONS) {
-        stringstream ss(line);
-        string custID, product, category, priceStr, date, paymentMethod;
-
-        getline(ss, custID, ',');
-        getline(ss, product, ',');
-        getline(ss, category, ',');
-        getline(ss, priceStr, ',');
-        getline(ss, date, ',');
-        getline(ss, paymentMethod);
-
-        try {
-            float price = stof(priceStr);
-            txArray.data[txArray.size++] = {custID, product, category, price, date, paymentMethod};
-        } catch (...) {
-            continue;
-        }
-    }
-
-    file.close();
-    return true;
-}
-
-bool LoadReviewsFromCSV(const string& filename) {
-    ifstream file(filename);
-    if (!file.is_open()) {
-        cout << "Error: Could not open file " << filename << endl;
-        return false;
-    }
-
-    string line;
-    getline(file, line);
-
-    while (getline(file, line)) {
-        stringstream ss(line);
-        string prodID, custID, ratingStr, reviewTxt;
-
-        getline(ss, prodID, ',');
-        getline(ss, custID, ',');
-        getline(ss, ratingStr, ',');
-        getline(ss, reviewTxt);
-
-        if (!reviewTxt.empty() && reviewTxt.front() == '"' && reviewTxt.back() == '"') {
-            reviewTxt = reviewTxt.substr(1, reviewTxt.size() - 2);
+    bool LoadFromCSV(const string& filename) {
+        ifstream file(filename);
+        if (!file.is_open()) {
+            cout << "Error: Could not open file " << filename << endl;
+            return false;
         }
 
-        try {
-            int rating = stoi(ratingStr);
-            reviews[reviewCount++] = {prodID, custID, rating, reviewTxt};
-        } catch (...) {
-            continue;
-        }
-    }
+        string line;
+        getline(file, line); // skip header
 
-    file.close();
-    return true;
-}
+        while (getline(file, line) && size < MAX_TRANSACTIONS) {
+            stringstream ss(line);
+            string customerID, product, category, priceStr, date, payment;
+            getline(ss, customerID, ',');
+            getline(ss, product, ',');
+            getline(ss, category, ',');
+            getline(ss, priceStr, ',');
+            getline(ss, date, ',');
+            getline(ss, payment);
 
-void insertionSortByDate(Transaction arr[], int n) {
-    for (int i = 1; i < n; ++i) {
-        Transaction key = arr[i];
-        int j = i - 1;
-        while (j >= 0 && arr[j].date > key.date) {
-            arr[j + 1] = arr[j];
-            j--;
-        }
-        arr[j + 1] = key;
-    }
-}
-
-void showSortedTransactions(Transaction arr[], int n) {
-    cout << "\n--- Transactions Sorted by Date ---\n";
-    for (int i = 0; i < n; ++i) {
-        cout << "Date: " << arr[i].date
-             << " | CustomerID: " << arr[i].customerID
-             << " | Product: " << arr[i].product
-             << " | Category: " << arr[i].category
-             << " | Price: RM" << arr[i].price
-             << " | Payment: " << arr[i].paymentMethod << "\n";
-    }
-    cout << "Total Number of Transactions: " << n << endl;
-}
-
-void filterTransactions(Transaction arr[], int n) {
-    string filterCategory, filterPayment;
-    cout << "\nEnter category to filter: ";
-    getline(cin, filterCategory);
-    cout << "Enter payment method to filter: ";
-    getline(cin, filterPayment);
-
-    int categoryCount = 0;
-    int filteredCount = 0;
-    Transaction filtered[100];
-    int filteredIndex = 0;
-
-    for (int i = 0; i < n; ++i) {
-        if (arr[i].category == filterCategory) {
-            categoryCount++;
-            if (arr[i].paymentMethod == filterPayment) {
-                if (filteredIndex < 100) {
-                    filtered[filteredIndex++] = arr[i];
-                }
-                filteredCount++;
+            try {
+                transactions[size++] = { customerID, product, category, stof(priceStr), date, payment };
+            } catch (...) {
+                continue;
             }
         }
+        return true;
     }
 
-    cout << "\nCategory: " << filterCategory << " | Payment Method: " << filterPayment << "\n";
-    cout << "Matching transactions: " << filteredCount << " out of " << categoryCount << "\n";
-
-    if (categoryCount > 0) {
-        float percentage = (filteredCount * 100.0f) / categoryCount;
-        cout << "Percentage: " << percentage << "%\n";
-    } else {
-        cout << "No transactions found in that category.\n";
-    }
-
-    cout << "\n--- Showing up to 10 filtered transactions ---\n";
-    int limit = (filteredIndex > 10) ? 10 : filteredIndex;
-    for (int i = 0; i < limit; ++i) {
-        cout << "Date: " << filtered[i].date
-             << " | CustomerID: " << filtered[i].customerID
-             << " | Product: " << filtered[i].product
-             << " | Category: " << filtered[i].category
-             << " | Price: RM" << filtered[i].price
-             << " | Payment: " << filtered[i].paymentMethod << "\n";
-    }
-}
-
-void filterTransactionsByDate(Transaction arr[], int n) {
-    string startDate, endDate;
-    cout << "\nEnter start date (YYYY-MM-DD): ";
-    getline(cin, startDate);
-    cout << "Enter end date (YYYY-MM-DD): ";
-    getline(cin, endDate);
-
-    insertionSortByDate(arr, n);
-
-    cout << "\n--- Transactions from " << startDate << " to " << endDate << " ---\n";
-    bool found = false;
-    for (int i = 0; i < n; ++i) {
-        if (arr[i].date >= startDate && arr[i].date <= endDate) {
-            cout << "Date: " << arr[i].date
-                 << " | CustomerID: " << arr[i].customerID
-                 << " | Product: " << arr[i].product
-                 << " | Category: " << arr[i].category
-                 << " | Price: RM" << arr[i].price
-                 << " | Payment: " << arr[i].paymentMethod << "\n";
-            found = true;
-        }
-    }
-    if (!found) cout << "No transactions found in the given date range.\n";
-}
-
-void analyze1StarReviews() {
-    map<string, int> wordFrequency;
-    for (int i = 0; i < reviewCount; ++i) {
-        if (reviews[i].rating == 1) {
-            stringstream ss(reviews[i].reviewText);
-            string word;
-            while (ss >> word) {
-                word.erase(remove_if(word.begin(), word.end(), ::ispunct), word.end());
-                transform(word.begin(), word.end(), word.begin(), ::tolower);
-                if (word.length() > 2) {
-                    wordFrequency[word]++;
+    void BubbleSortByDate() {
+        for (int i = 0; i < size - 1; ++i) {
+            for (int j = 0; j < size - i - 1; ++j) {
+                if (transactions[j].date > transactions[j + 1].date) {
+                    swap(transactions[j], transactions[j + 1]);
                 }
             }
         }
+        sortType = 1;
     }
 
-    pair<string, int> wordList[1000];
-    int idx = 0;
-    for (auto& p : wordFrequency) {
-        wordList[idx++] = p;
+    void InsertionSortByDate() {
+        for (int i = 1; i < size; ++i) {
+            Transaction key = transactions[i];
+            int j = i - 1;
+            while (j >= 0 && transactions[j].date > key.date) {
+                transactions[j + 1] = transactions[j];
+                --j;
+            }
+            transactions[j + 1] = key;
+        }
+        sortType = 2;
     }
-    sort(wordList, wordList + idx, [](auto &a, auto &b) {
-        return a.second > b.second;
-    });
 
-    cout << "\n--- Top Frequent Words in 1-Star Reviews ---\n";
-    for (int i = 0; i < min(10, idx); ++i) {
-        cout << wordList[i].first << " : " << wordList[i].second << "\n";
+    void DisplayTransactionsByDate() const {
+        cout << "\n--- Transactions Sorted by Date ---\n";
+        for (int i = 0; i < size; ++i) {
+            const auto& t = transactions[i];
+            cout << "Date: " << t.date
+                 << " | CustomerID: " << t.customerID
+                 << " | Product: " << t.product
+                 << " | Category: " << t.category
+                 << " | Price: RM" << t.price
+                 << " | Payment: " << t.paymentMethod << "\n";
+        }
+        cout << "Total Number of Transactions: " << size << endl;
     }
-}
 
-void showAllReviews() {
-    cout << "\n--- All Reviews ---\n";
-    for (int i = 0; i < reviewCount; ++i) {
-        cout << "Product ID: " << reviews[i].productID
-             << " | Customer ID: " << reviews[i].customerID
-             << " | Rating: " << reviews[i].rating
-             << " | Review: " << reviews[i].reviewText << "\n";
+    void FilterByCategoryAndPayment() {
+        string filterCategory, filterPayment;
+        cout << "\nEnter category to filter: ";
+        getline(cin, filterCategory);
+        cout << "Enter payment method to filter: ";
+        getline(cin, filterPayment);
+    
+        int categoryCount = 0;
+        int filteredCount = 0;
+        Transaction toDisplay[10]; // only store 10 for display
+        int displayIndex = 0;
+    
+        for (int i = 0; i < size; ++i) {
+            if (transactions[i].category == filterCategory) {
+                categoryCount++;
+                if (transactions[i].paymentMethod == filterPayment) {
+                    filteredCount++;
+                    if (displayIndex < 10) {
+                        toDisplay[displayIndex++] = transactions[i];
+                    }
+                }
+            }
+        }
+    
+        cout << "\n" << filteredCount << " " << filterPayment << " out of " << categoryCount << " " << filterCategory << "\n";
+    
+        if (filteredCount > 0) {
+            cout << "\n--- Showing up to 10 filtered transactions ---\n";
+            for (int i = 0; i < displayIndex; ++i) {
+                const auto& t = toDisplay[i];
+                cout << "Date: " << t.date
+                     << " | CustomerID: " << t.customerID
+                     << " | Product: " << t.product
+                     << " | Category: " << t.category
+                     << " | Price: RM" << t.price
+                     << " | Payment: " << t.paymentMethod << "\n";
+            }
+        } else {
+            cout << "No matching transactions found.\n";
+        }
     }
-    cout << "Total Number of Reviews: " << reviewCount << endl;
-}
+
+    void FilterByDateRange() const {
+        string startDate, endDate;
+        cout << "\nEnter start date (YYYY-MM-DD): ";
+        getline(cin, startDate);
+        cout << "Enter end date (YYYY-MM-DD): ";
+        getline(cin, endDate);
+
+        cout << "\n--- Transactions from " << startDate << " to " << endDate << " ---\n";
+        bool found = false;
+        for (int i = 0; i < size; ++i) {
+            if (transactions[i].date >= startDate && transactions[i].date <= endDate) {
+                const auto& t = transactions[i];
+                cout << "Date: " << t.date
+                     << " | CustomerID: " << t.customerID
+                     << " | Product: " << t.product
+                     << " | Category: " << t.category
+                     << " | Price: RM" << t.price
+                     << " | Payment: " << t.paymentMethod << "\n";
+                found = true;
+            }
+        }
+        if (!found) cout << "No transactions found in the given range.\n";
+    }
+};
 
 int main() {
-    TransactionsArray txArray;
-    if (!LoadTransactionsFromCSV("transactions_clean.csv", txArray)) return 1;
-    if (!LoadReviewsFromCSV("reviews_clean.csv")) return 1;
+    TransactionsArray tArray;
+    if (!tArray.LoadFromCSV("transactions_clean.csv")) {
+        return 1;
+    }
 
-    insertionSortByDate(txArray.data, txArray.size);
-
+    int choice;
     while (true) {
-        cout << "\n--- MAIN MENU ---\n";
-        cout << "1. Show all transactions sorted by date\n";
-        cout << "2. Filter transactions by category and payment method\n";
-        cout << "3. Filter transactions by date range\n";
-        cout << "4. Analyze 1-star reviews\n";
-        cout << "5. Show all reviews\n";
-        cout << "6. Exit\n";
+        cout << "\n" << (1 == 1 ? "Array: Transactions" : "Linked List: Transactions") << endl;
+        cout << "1. Sort Customer Transactions by Date (BubbleSort)\n";
+        cout << "2. Sort Customer Transactions by Date (InsertionSort)\n";
+        cout << "3. Search and Filter Transactions by Category and Payment Method\n";
+        cout << "4. Filter transactions by date range\n";
+        cout << "5. Display Transactions by date\n";
+        cout << "6. Back\n";
         cout << "Enter your choice: ";
-
-        string choice;
-        getline(cin, choice);
+        cin >> choice;
+        cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Fixed input handling
 
         auto start = high_resolution_clock::now();
 
-        if (choice == "1") showSortedTransactions(txArray.data, txArray.size);
-        else if (choice == "2") filterTransactions(txArray.data, txArray.size);
-        else if (choice == "3") filterTransactionsByDate(txArray.data, txArray.size);
-        else if (choice == "4") analyze1StarReviews();
-        else if (choice == "5") showAllReviews();
-        else if (choice == "6") break;
-        else cout << "Invalid choice. Try again.\n";
+        if (choice == 1) {
+            tArray.BubbleSortByDate();
+        } else if (choice == 2) {
+            tArray.InsertionSortByDate();
+        } else if (choice == 3) {
+            tArray.FilterByCategoryAndPayment();
+        } else if (choice == 4) {
+            tArray.FilterByDateRange();
+        } else if (choice == 5) {
+            tArray.DisplayTransactionsByDate();
+        } else if (choice == 6) {
+            break;
+        } else {
+            cout << "Invalid choice.\n";
+        }
 
         auto end = high_resolution_clock::now();
         auto duration = duration_cast<microseconds>(end - start);
         cout << "Time taken: " << duration.count() << " microseconds\n";
     }
 
-    cout << "Thanks for using the system!\n";
     return 0;
 }
