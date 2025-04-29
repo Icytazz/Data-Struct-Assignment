@@ -12,18 +12,18 @@
 using namespace std;
 using namespace chrono;
 
-const int MAX_REVIEWS = 10000;
+const int MAX_REVIEWS = 4000;
 const int MAX_WORDS = 1000;
-const int MAX_TRANSACTIONS = 10000;
+const int MAX_TRANSACTIONS = 4500;
 
 struct Transaction{
-    Transaction* next;
     string CusID;
     string Product;
     string Category;
     string Date;
     string PaymentMethod;
     float Price;
+    Transaction* next;
 };
 
 struct Review{
@@ -215,6 +215,27 @@ struct TransactionsLink{
         } while (swapped);
     }
 
+    void filterByDateRange(string startDate, string endDate) const {
+        cout << "\n--- Transactions from " << startDate << " to " << endDate << " ---\n";
+        bool found = false;
+        Transaction* current = Entry;
+        
+        while (current != nullptr) {
+            if (current->Date >= startDate && current->Date <= endDate) {
+                cout << "Date: " << current->Date
+                     << " | CustomerID: " << current->CusID
+                     << " | Product: " << current->Product
+                     << " | Category: " << current->Category
+                     << " | Price: RM" << fixed << setprecision(2) << current->Price
+                     << " | Payment: " << current->PaymentMethod << "\n";
+                found = true;
+            }
+            current = current->next;
+        }
+        
+        if (!found) cout << "No transactions found in the given range.\n";
+    }
+
     void categoryPercentage(string userCat, string userPayment) {
         // Calculate statistics first
         int categoryTotal = 0;
@@ -251,7 +272,7 @@ struct TransactionsLink{
         
         // Output statistics
         cout << "Category: " << userCat << " | Payment Method: " << userPayment << endl;
-        cout << "Matching transactions: " << categoryPayment << " out of " << categoryTotal << endl;
+        cout << "Matching transactions: " << categoryPayment << " (" << userPayment << ") out of " << categoryTotal << " (" << userCat << ")" << endl;
         
         if (categoryTotal == 0) {
             cout << "Percentage: 0%" << endl;
@@ -423,16 +444,33 @@ struct TransactionsArray {
     }
 
     void categoryPercentage(string userCat, string userPayment) {
-        int categoryCount = 0;
-        int filteredCount = 0;
+        int categoryTotal = 0;
+        int categoryPayment = 0;
         Transaction toDisplay[10]; // only store 10 for display
         int displayIndex = 0;
     
+        // Convert search terms to lowercase once
+        string lowerUserCategory = userCat;
+        string lowerUserPayment = userPayment;
+        transform(lowerUserCategory.begin(), lowerUserCategory.end(), 
+                 lowerUserCategory.begin(), ::tolower);
+        transform(lowerUserPayment.begin(), lowerUserPayment.end(), 
+                 lowerUserPayment.begin(), ::tolower);
+    
+        // First pass: count matching transactions
         for (int i = 0; i < size; ++i) {
-            if (transactions[i].Category == userCat) {
-                categoryCount++;
-                if (transactions[i].PaymentMethod == userPayment) {
-                    filteredCount++;
+            string transactionCategory = transactions[i].Category;
+            string transactionPayment = transactions[i].PaymentMethod;
+            
+            transform(transactionCategory.begin(), transactionCategory.end(), 
+                     transactionCategory.begin(), ::tolower);
+            transform(transactionPayment.begin(), transactionPayment.end(), 
+                     transactionPayment.begin(), ::tolower);
+            
+            if (transactionCategory == lowerUserCategory) {
+                categoryTotal++;
+                if (transactionPayment == lowerUserPayment) {
+                    categoryPayment++;
                     if (displayIndex < 10) {
                         toDisplay[displayIndex++] = transactions[i];
                     }
@@ -440,21 +478,35 @@ struct TransactionsArray {
             }
         }
     
-        cout << "\n" << filteredCount << " " << userPayment << " out of " << categoryCount << " " << userCat << "\n";
-    
-        if (filteredCount > 0) {
-            cout << "\n--- Showing up to 10 filtered transactions ---\n";
+        // Output statistics
+        cout << "Category: " << userCat << " | Payment Method: " << userPayment << endl;
+        cout << "Matching transactions: " << categoryPayment << " (" << userPayment << ") out of " 
+             << categoryTotal << " (" << userCat << ")" << endl;
+        
+        if (categoryTotal == 0) {
+            cout << "Percentage: 0%" << endl;
+            cout << "No matching transactions found." << endl;
+            return;
+        }
+        
+        float percentage = (static_cast<float>(categoryPayment) / categoryTotal) * 100.0f;
+        cout << fixed << setprecision(4);
+        cout << "Percentage: " << percentage << "%" << endl;
+        
+        // Display matching transactions
+        if (categoryPayment > 0) {
+            cout << "\n--- Showing up to 10 filtered transactions ---" << endl;
             for (int i = 0; i < displayIndex; ++i) {
                 const auto& t = toDisplay[i];
                 cout << "Date: " << t.Date
                      << " | CustomerID: " << t.CusID
                      << " | Product: " << t.Product
                      << " | Category: " << t.Category
-                     << " | Price: RM" << t.Price
-                     << " | Payment: " << t.PaymentMethod << "\n";
+                     << " | Price: RM" << fixed << setprecision(2) << t.Price
+                     << " | Payment: " << t.PaymentMethod << endl;
             }
         } else {
-            cout << "No matching transactions found.\n";
+            cout << "No matching transactions found." << endl;
         }
     }
 
@@ -681,7 +733,7 @@ struct ReviewLink{
         sortWordFrequency();
 
         // Display final results
-        cout << "\nTop 10 most frequent words in 1-star reviews (" << oneStarCount << " reviews found):\n";
+        cout << "\nTop 10 most frequent words in 1-star reviews (" << oneStarCount << " reviews found, Linked List):\n";
         cout << "----------------------------------------\n";
         cout << left << setw(6) << "Rank" << setw(16) << "Word" << "Frequency\n";
         cout << "----------------------------------------\n";
@@ -818,7 +870,7 @@ struct ReviewArray {
             }
         }
 
-        cout << "\nTop 10 most frequent words in 1-star reviews (" << oneStarCount << " reviews found):\n";
+        cout << "\nTop 10 most frequent words in 1-star reviews (" << oneStarCount << " reviews found, Array):\n";
         cout << "---------------------------------------------------------------\n";
         cout << "Rank   Word         Frequency\n";
         cout << "---------------------------------------------------------------\n";
@@ -831,202 +883,31 @@ struct ReviewArray {
     }
 };
 
-void call_functions(int array_or_linked, int review_or_transaction, ReviewArray revArray0, ReviewLink revList0, TransactionsLink traList0, TransactionsArray traArray0){
-    ReviewArray revArray            = revArray0;
-    ReviewLink revList              = revList0;
-    TransactionsLink traList        = traList0;
-    TransactionsArray traArray      = traArray0;
-
-    int SizeRevArray = sizeof(revArray.reviews);
-
-    int function;
-        // ValiDate input
-        if (review_or_transaction == 3) {
-            return; // Exit program
-
-        }else if (review_or_transaction != 1 && review_or_transaction != 2) {
-            cout << "Invalid choice. Please enter 1, 2, or 3.\n";
-            system("pause");
-            return;
-
-        }else if (review_or_transaction == 1){
-            while (true){
-                cout << (array_or_linked == 1 ? "\nArray: Reviews" : "\nLinked List: Reviews") << endl;
-                cout << "1. Sort Top 10 Words Used in 1-Star Reviews\n";
-                cout << "2. Display Reviews\n";
-                cout << "3. Clear Terminal\n";
-                cout << "4. Back\n";
-                cout << "Enter your choice: ";
-
-                cin >> function;
-
-                // Reviews
-                if (array_or_linked == 1) {
-                    if (function == 1){
-                        cout << "Sorting Top 10 Words Used in 1-Star Reviews(Array)\n";
-
-                        // execute function with time complexity
-                        auto start = high_resolution_clock::now();
-                        revArray.sortTop10Words(10);
-                        auto end = high_resolution_clock::now();
-                        auto duration = duration_cast<microseconds>(end - start);
-                        cout << "Time taken: " << duration.count() << " microseconds" << endl;
-                        
-
-
-                    }else if(function == 2){
-                        cout << "Displaying Reviews (Array)" << endl;
-
-                        auto start = high_resolution_clock::now();
-                        revArray.displayReview();
-                        auto end = high_resolution_clock::now();
-                        auto duration = duration_cast<microseconds>(end - start);
-                        cout << "Space used: " << SizeRevArray << " bytes" << endl;
-                        cout << "Time taken: " << duration.count() << " microseconds" << endl;
-
-
-
-                    }else if(function == 3){
-
-                        system("cls");
-
-
-                    }else if (function == 4){
-                        break;
-
-                    }
-                // LinkedList
-                }else if (array_or_linked == 2){
-                    if (function == 1){
-                        cout << "Sorting Top 10 Words Used in 1-Star Reviews(LinkedList)\n";
-
-                        // execute function with time complexity
-                        auto start = high_resolution_clock::now();
-                        revList.sortTop10Words(10);
-                        auto end = high_resolution_clock::now();
-                        auto duration = duration_cast<microseconds>(end - start);
-                        cout << "Time taken: " << duration.count() << " microseconds" << endl;
-                        
-
-
-                    }else if(function == 2){
-                        cout << "Displaying Reviews (LinkedList)" << endl;
-
-                        auto start = high_resolution_clock::now();
-                        revList.displayReview();
-                        auto end = high_resolution_clock::now();
-                        auto duration = duration_cast<microseconds>(end - start);
-                        cout << "Time taken: " << duration.count() << " microseconds" << endl;
-    
-
-
-                    }else if(function == 3){
-
-                        system("cls");
-
-
-                    }else if (function == 4){
-                        break;
-
-                    }
-
-                }
-            }   
-
-        }else if (review_or_transaction == 2){
-            cout << (array_or_linked == 1 ? "\nArray: Transactions" : "\nLinked List: Transactions") << endl;
-            cout << "1. Sort Customer Transactions by Date (BubbleSort)\n";
-            cout << "2. Sort Customer Transactions by Date (InsertionSort)\n";
-            cout << "3. Search and Filter Transactions by Category and Payment Method\n";
-            cout << "4. Filter transactions by Date range\n";
-            cout << "5. Display Transactions\n";
-            cout << "6. Clear Terminal\n";
-            cout << "7. Back\n";
-            cout << "Enter your choice: ";
-            // Transaction
-            if (array_or_linked == 1) {
-                if (function == 1){
-                    cout << "Sorting Customer Transactions by Date (BubbleSort)\n";
-                    auto start = high_resolution_clock::now();
-                    revArray.sortTop10Words(10);
-                    auto end = high_resolution_clock::now();
-                    auto duration = duration_cast<microseconds>(end - start);
-                    cout << "Time taken: " << duration.count() << " microseconds" << endl;
-
-                    cout << "Invalid choice.\n";
-                }
-                
-            }
-
-        }
-
-    
-    
-}
-
-void array_or_linked(ReviewArray revArray0, ReviewLink revList0, TransactionsLink traList0, TransactionsArray traArray0){
-    ReviewArray revArray            = revArray0;
-    ReviewLink revList              = revList0;
-    TransactionsLink traList        = traList0;
-    TransactionsArray traArray      = traArray0;
-    int array_or_linked, review_or_transaction;
-    while(true) {
-        cout << "Choose the structure you want to use:\n";
-        cout << "1. Array\n";
-        cout << "2. Linked List\n";
-        cout << "3. Exit\n";
-        cout << "Enter your choice: ";
-            // ValiDate input
-            if (!(cin >> array_or_linked)) {
-                cin.clear(); // Clear error flag
-                cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Discard bad input
-                cout << "Invalid input. Please enter a number (1-3).\n";
-                system("pause");
-                continue;
-            }else if (array_or_linked == 3) {
-                break; // Exit program
-            }else if (array_or_linked != 1 && array_or_linked != 2) {
-                cout << "Invalid choice. Please enter 1, 2, or 3.\n";
-                system("pause");
-                continue;
-            } else{
-                cout << (array_or_linked == 1 ? "Array" : "Linked List") << endl;
-                cout << "1. Reviews\n";
-                cout << "2. Transactions\n";
-                cout << "3. Back to Main Menu\n";
-                cout << "Enter your choice: ";
-                cin >> review_or_transaction;        
-            }
-        call_functions(array_or_linked, review_or_transaction, revArray, revList, traList, traArray);
-    }
-
-}
-
 int main(){
-    cout << "Program started..." << endl;
+    system("cls");
     ReviewArray revArray;
     ReviewLink revList;
     TransactionsLink traList;
     TransactionsArray traArray;
-    
+
     string revFile = "reviews_clean.csv";
     string traFile = "transactions_clean.csv";
     revArray.LoadReviewsFromCSV(revFile);
     revList.LoadReviewsFromCSV(revFile, revList);
     traList.LoadTransactionsFromCSV(traFile, traList);
     traArray.LoadTransactionsFromCSV(traFile);
-    int mainChoice, subChoice, operationChoice;
+    int array_or_linklist, rev_or_tra, operationChoice;
     int SizeRevArray = sizeof(revArray.reviews);
     
     while(true) {
-        cout << "Choose the structure you want to use:\n";
+        cout << "\nChoose the structure you want to use:\n";
         cout << "1. Array\n";
         cout << "2. Linked List\n";
         cout << "3. Exit\n";
         cout << "Enter your choice: ";
         
         // ValiDate input
-        if (!(cin >> mainChoice)) {
+        if (!(cin >> array_or_linklist)) {
             cin.clear(); // Clear error flag
             cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Discard bad input
             cout << "Invalid input. Please enter a number (1-3).\n";
@@ -1034,64 +915,62 @@ int main(){
             continue;
         }
         
-        if (mainChoice == 3) {
+        if (array_or_linklist == 3) {
             break; // Exit program
         }
         
-        if (mainChoice != 1 && mainChoice != 2) {
+        if (array_or_linklist != 1 && array_or_linklist != 2) {
             cout << "Invalid choice. Please enter 1, 2, or 3.\n";
             system("pause");
             continue;
         }
         
-        system("cls");
-        cout << (mainChoice == 1 ? "Array" : "Linked List") << endl;
+        cout << (array_or_linklist == 1 ? "\nArray" : "\nLinked List") << endl;
         cout << "1. Reviews\n";
         cout << "2. Transactions\n";
         cout << "3. Back to Main Menu\n";
         cout << "Enter your choice: ";
-        cin >> subChoice;
+        cin >> rev_or_tra;
         
-        if(subChoice == 3) {
+        if(rev_or_tra == 3) {
             continue; 
         }
         
-        if(subChoice != 1 && subChoice != 2) {
+        if(rev_or_tra != 1 && rev_or_tra != 2) {
             cout << "Invalid choice. Please try again.\n";
             system("pause");
             continue;
         }
         
         // Reviews Operations
-        if(subChoice == 1) while (true) {
-            cout << (mainChoice == 1 ? "\nArray: Reviews" : "\nLinked List: Reviews") << endl;
+        if(rev_or_tra == 1) while (true) {
+            cout << (array_or_linklist == 1 ? "\nArray: Reviews" : "\nLinked List: Reviews") << endl;
             cout << "1. Sort Top 10 Words Used in 1-Star Reviews\n";
             cout << "2. Display Reviews\n";
             cout << "3. Clear Terminal\n";
             cout << "4. Back\n";
             cout << "Enter your choice: ";
             
-            // ValiDate input
+            // validate input
             if (!(cin >> operationChoice)) {
-                cin.clear(); // Clear error flag
-                cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Discard bad input
+                cin.clear();
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
                 cout << "Invalid choice.\n";
                 system("pause");
-                system("cls");
                 continue;
             }
             
             if (operationChoice == 4) {
-                break;  // Exit the loop to go back to previous menu
+                break; 
             }
         
             if (operationChoice == 3) {
                 system("cls");
-                continue;  // Show menu again after clearing
+                continue;
             }
             
             if (operationChoice == 1) {
-                if (mainChoice == 1) {
+                if (array_or_linklist == 1) {
                     auto start = high_resolution_clock::now();
                     revArray.sortTop10Words(10);
                     auto end = high_resolution_clock::now();
@@ -1106,7 +985,7 @@ int main(){
                 }
             } 
             else if (operationChoice == 2) {
-                if (mainChoice == 1) {
+                if (array_or_linklist == 1) {
                     auto start = high_resolution_clock::now();
                     revArray.displayReview();
                     auto end = high_resolution_clock::now();
@@ -1125,13 +1004,13 @@ int main(){
                 cout << "Invalid choice.\n";
                 system("pause");
                 system("cls");
-                continue;  // Skip the pause below and show menu again
+                continue; 
             }
         }
         // Transactions Operations
-        else if(subChoice == 2) {
+        else if(rev_or_tra == 2) {
             while (true) {
-                cout << (mainChoice == 1 ? "\nArray: Transactions" : "\nLinked List: Transactions") << endl;
+                cout << (array_or_linklist == 1 ? "\nArray: Transactions" : "\nLinked List: Transactions") << endl;
                 cout << "1. Sort Customer Transactions by Date (BubbleSort)\n";
                 cout << "2. Sort Customer Transactions by Date (InsertionSort)\n";
                 cout << "3. Search and Filter Transactions by Category and Payment Method\n";
@@ -1141,10 +1020,10 @@ int main(){
                 cout << "7. Back\n";
                 cout << "Enter your choice: ";
                 
-                // ValiDate input
+                // validate input
                 if (!(cin >> operationChoice)) {
-                    cin.clear(); // Clear error flag
-                    cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Discard bad input
+                    cin.clear(); 
+                    cin.ignore(numeric_limits<streamsize>::max(), '\n'); 
                     cout << "Invalid choice.\n";
                     system("pause");
                     system("cls");
@@ -1152,16 +1031,16 @@ int main(){
                 }
                 
                 if (operationChoice == 7) {
-                    break;  // Exit the loop to go back to previous menu
+                    break;
                 }
             
                 if (operationChoice == 6) {
                     system("cls");
-                    continue;  // Show menu again after clearing
+                    continue; 
                 }
                 
                 if (operationChoice == 1) {
-                    if (mainChoice == 1) {
+                    if (array_or_linklist == 1) {
                         auto start = high_resolution_clock::now();
                         traArray.bubbleSortByDate();
                         auto end = high_resolution_clock::now();
@@ -1176,7 +1055,7 @@ int main(){
                     }
                 } 
                 else if (operationChoice == 2) {
-                    if (mainChoice == 1) {
+                    if (array_or_linklist == 1) {
                         auto start = high_resolution_clock::now();
                         traArray.insertionSortByDate();
                         auto end = high_resolution_clock::now();
@@ -1191,7 +1070,7 @@ int main(){
                     }
                 }
                 else if (operationChoice == 3) {
-                    if (mainChoice == 1) {
+                    if (array_or_linklist == 1) {
                         string userCategory, userPayment;
                         cin.ignore(numeric_limits<streamsize>::max(), '\n');
                         cout << "Enter the category you want to analyze: ";
@@ -1230,8 +1109,7 @@ int main(){
                     }
                 }
                 else if (operationChoice == 4) {
-                    if (mainChoice == 1) {
-                        // traArray.filterByDateRange();
+                    if (array_or_linklist == 1) {
                         string startDate, endDate;
                         cin.ignore(numeric_limits<streamsize>::max(), '\n');
                         cout << "Enter start Date (YYYY-MM-DD): ";
@@ -1250,11 +1128,27 @@ int main(){
                         auto duration = duration_cast<microseconds>(end - start);
                         cout << "Time taken: " << duration.count() << " microseconds" << endl;
                     } else {
-                        // traList.filterByDateRange();
+                        string startDate, endDate;
+                        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                        cout << "Enter start Date (YYYY-MM-DD): ";
+                        while(getline(cin, startDate) && startDate.empty()) {
+                            cout << "Date cannot be empty ";
+                        }
+                        
+                        cout << "Enter end Date (YYYY-MM-DD): ";
+                        while(getline(cin, endDate) && endDate.empty()) {
+                            cout << "Date cannot be empty ";
+                        }
+                        
+                        auto start = high_resolution_clock::now();
+                        traList.filterByDateRange(startDate, endDate);
+                        auto end = high_resolution_clock::now();
+                        auto duration = duration_cast<microseconds>(end - start);
+                        cout << "Time taken: " << duration.count() << " microseconds" << endl;
                     }
                 }
                 else if (operationChoice == 5) {
-                    if (mainChoice == 1) {
+                    if (array_or_linklist == 1) {
                         traArray.displayTransactions();
                     } else {
                         traList.displayTransactions();
