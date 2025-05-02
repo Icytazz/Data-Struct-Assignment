@@ -81,6 +81,7 @@ struct TransactionsLink{
     }
 
     void displayTransactions() {
+        int count = 0;
         Transaction* current = Entry;
         if (Entry == nullptr) {
             cout << "List is empty, no transactions to display." << endl;
@@ -95,46 +96,11 @@ struct TransactionsLink{
                  << " | Price: RM" << fixed << setprecision(2) << current->Price
                  << " | Payment: " << current->PaymentMethod << endl;
             
+            count++;
             current = current->next;
         }
-    }
-
-
-    void bubbleSortByPrice() {
-        if (Entry == nullptr || Entry->next == nullptr) return;
-    
-        bool swapped;
-        Transaction* ptr1;
-        Transaction* lptr = nullptr;
-    
-        do {
-            swapped = false;
-            ptr1 = Entry;
-            Transaction* prev = nullptr;
-    
-            while (ptr1->next != lptr) {
-                Transaction* next = ptr1->next;
-    
-                // swap by price
-                if (ptr1->Price > next->Price) {
-                    // Swap nodes
-                    if (prev)
-                        prev->next = next;
-                    else
-                        Entry = next;
-    
-                    ptr1->next = next->next;
-                    next->next = ptr1;
-    
-                    swapped = true;
-                    prev = next;
-                } else {
-                    prev = ptr1;
-                    ptr1 = ptr1->next;
-                }
-            }
-            lptr = ptr1;
-        } while (swapped);
+        cout << "Current Number of Valid Transactions: "<< count << endl;
+        cout << "Space used: " << count * sizeof(Transaction) << " bytes" << endl;
     }
 
     void insertionSortByDate() {
@@ -219,6 +185,7 @@ struct TransactionsLink{
         cout << "\n--- Transactions from " << startDate << " to " << endDate << " ---\n";
         bool found = false;
         Transaction* current = Entry;
+        int totalTransactions = 0; 
         
         while (current != nullptr) {
             if (current->Date >= startDate && current->Date <= endDate) {
@@ -229,11 +196,16 @@ struct TransactionsLink{
                      << " | Price: RM" << fixed << setprecision(2) << current->Price
                      << " | Payment: " << current->PaymentMethod << "\n";
                 found = true;
+                totalTransactions++;
             }
             current = current->next;
         }
         
-        if (!found) cout << "No transactions found in the given range.\n";
+        if (found) {
+            cout << "\nTotal transactions in this date range: " << totalTransactions << "\n";
+        } else {
+            cout << "No transactions found in the given range.\n";
+        }
     }
 
     void categoryPercentage(string userCat, string userPayment) {
@@ -310,18 +282,6 @@ struct TransactionsLink{
             }
             current = current->next;
         }
-    }
-    
-    int countNodes() {
-        int count = 0;
-        Transaction* current = Entry;
-        while (current != nullptr) {
-            count++;
-            current = current->next;
-        }
-        cout << "Current Number of Valid Transactions: "<< count << endl;
-        cout << "Space used: " << count * sizeof(Transaction) << " bytes" << endl;
-        return count;
     }
 
     bool LoadTransactionsFromCSV(const string& filename, TransactionsLink& list) {
@@ -513,6 +473,8 @@ struct TransactionsArray {
     void filterByDateRange(string startDate, string endDate) const {
         cout << "\n--- Transactions from " << startDate << " to " << endDate << " ---\n";
         bool found = false;
+        int totalTransactions = 0; 
+
         for (int i = 0; i < size; ++i) {
             if (transactions[i].Date >= startDate && transactions[i].Date <= endDate) {
                 const auto& t = transactions[i];
@@ -523,10 +485,16 @@ struct TransactionsArray {
                      << " | Price: RM" << t.Price
                      << " | Payment: " << t.PaymentMethod << "\n";
                 found = true;
-            }
+                totalTransactions++;
         }
-        if (!found) cout << "No transactions found in the given range.\n";
     }
+    
+    if (found) {
+        cout << "\nTotal transactions in this date range: " << totalTransactions << "\n";
+    } else {
+        cout << "No transactions found in the given range.\n";
+    }
+}
 };
 
 struct ReviewLink{
@@ -892,12 +860,38 @@ int main(){
 
     string revFile = "reviews_clean.csv";
     string traFile = "transactions_clean.csv";
+
+    auto start = high_resolution_clock::now();
+    auto end = high_resolution_clock::now();
+    auto duration = duration_cast<microseconds>(end - start);
+
+    start = high_resolution_clock::now();
     revArray.LoadReviewsFromCSV(revFile);
+    end = high_resolution_clock::now();
+    duration = duration_cast<microseconds>(end - start);
+    cout << "Time taken to load Reviews(Array): " << duration.count() << " microseconds" << endl;
+
+    start = high_resolution_clock::now();
     revList.LoadReviewsFromCSV(revFile, revList);
+    end = high_resolution_clock::now();
+    duration = duration_cast<microseconds>(end - start);
+    cout << "Time taken to load Reviews(Linked List): " << duration.count() << " microseconds" << endl;
+
+    start = high_resolution_clock::now();
     traList.LoadTransactionsFromCSV(traFile, traList);
+    end = high_resolution_clock::now();
+    duration = duration_cast<microseconds>(end - start);
+    cout << "Time taken to load Transactions(Linked List): " << duration.count() << " microseconds" << endl;
+
+    start = high_resolution_clock::now();
     traArray.LoadTransactionsFromCSV(traFile);
+    end = high_resolution_clock::now();
+    duration = duration_cast<microseconds>(end - start);
+    cout << "Time taken to load Transactions(Array): " << duration.count() << " microseconds" << endl;
+
     int array_or_linklist, rev_or_tra, operationChoice;
     int SizeRevArray = sizeof(revArray.reviews);
+    int SizeTraArray = sizeof(traArray.transactions);
     
     while(true) {
         cout << "\nChoose the structure you want to use:\n";
@@ -986,18 +980,10 @@ int main(){
             } 
             else if (operationChoice == 2) {
                 if (array_or_linklist == 1) {
-                    auto start = high_resolution_clock::now();
                     revArray.displayReview();
-                    auto end = high_resolution_clock::now();
-                    auto duration = duration_cast<microseconds>(end - start);
                     cout << "Space used: " << SizeRevArray << " bytes" << endl;
-                    cout << "Time taken: " << duration.count() << " microseconds" << endl;
                 } else {
-                    auto start = high_resolution_clock::now();
                     revList.displayReview();
-                    auto end = high_resolution_clock::now();
-                    auto duration = duration_cast<microseconds>(end - start);
-                    cout << "Time taken: " << duration.count() << " microseconds" << endl;
                 }
             }
             else {
@@ -1014,7 +1000,7 @@ int main(){
                 cout << "1. Sort Customer Transactions by Date (BubbleSort)\n";
                 cout << "2. Sort Customer Transactions by Date (InsertionSort)\n";
                 cout << "3. Search and Filter Transactions by Category and Payment Method\n";
-                cout << "4. Filter transactions by Date range\n";
+                cout << "4. Filter transactions by Date Range\n";
                 cout << "5. Display Transactions\n";
                 cout << "6. Clear Terminal\n";
                 cout << "7. Back\n";
@@ -1150,6 +1136,7 @@ int main(){
                 else if (operationChoice == 5) {
                     if (array_or_linklist == 1) {
                         traArray.displayTransactions();
+                        cout << "Space used: " << SizeTraArray << " bytes" << endl;
                     } else {
                         traList.displayTransactions();
                     }
