@@ -223,7 +223,8 @@ struct TransactionsLink{
         transform(lowerUserPayment.begin(), lowerUserPayment.end(), 
                  lowerUserPayment.begin(), ::tolower);
         
-        // First pass: count matching transactions
+        // count matching transactions
+        auto start = high_resolution_clock::now();
         while (current != nullptr) {
             string transactionCategory = current->Category;
             string transactionPayment = current->PaymentMethod;
@@ -241,6 +242,8 @@ struct TransactionsLink{
             }
             current = current->next;
         }
+        auto end = high_resolution_clock::now();
+        auto duration = duration_cast<microseconds>(end - start);
         
         // Output statistics
         cout << "Category: " << userCat << " | Payment Method: " << userPayment << endl;
@@ -255,7 +258,7 @@ struct TransactionsLink{
         cout << fixed << setprecision(4);
         cout << "Percentage: " << percentage << "%" << endl;
         
-        // Second pass: display matching transactions (up to 10)
+        // display matching transactions (up to 10)
         cout << "\n--- Showing up to 10 filtered transactions ---" << endl;
         current = Entry;
         int displayed = 0;
@@ -282,6 +285,7 @@ struct TransactionsLink{
             }
             current = current->next;
         }
+        cout << "Time taken to Search (Linked List, Transaction): " << duration.count() << " microsecond" << endl;
     }
 
     bool LoadTransactionsFromCSV(const string& filename, TransactionsLink& list) {
@@ -417,7 +421,8 @@ struct TransactionsArray {
         transform(lowerUserPayment.begin(), lowerUserPayment.end(), 
                  lowerUserPayment.begin(), ::tolower);
     
-        // First pass: count matching transactions
+        // count matching transactions
+        auto start = high_resolution_clock::now();
         for (int i = 0; i < size; ++i) {
             string transactionCategory = transactions[i].Category;
             string transactionPayment = transactions[i].PaymentMethod;
@@ -437,6 +442,8 @@ struct TransactionsArray {
                 }
             }
         }
+        auto end = high_resolution_clock::now();
+        auto duration = duration_cast<microseconds>(end - start);  // Use microseconds
     
         // Output statistics
         cout << "Category: " << userCat << " | Payment Method: " << userPayment << endl;
@@ -468,6 +475,7 @@ struct TransactionsArray {
         } else {
             cout << "No matching transactions found." << endl;
         }
+        cout << "Time taken to Search (Array, Transaction): " << duration.count() << " microsecond" << endl;
     }
 
     void filterByDateRange(string startDate, string endDate) const {
@@ -604,6 +612,7 @@ struct ReviewLink{
 
     // Function to add or upDate word in our frequency list
     void addWord(string word) {
+        long totalSearchTimeL;
         if (word.empty() || word.length() <= 2) return;
 
         // Convert to lowercase for consistent counting
@@ -612,11 +621,11 @@ struct ReviewLink{
         WordNode* current = wordHead;
         WordNode* prev = nullptr;
 
-        // Search for existing word
-        while (current != nullptr) {
-            if (current->word == word) {
-                current->count++;
-                return;
+        // Linear search in linked list
+            while (current != nullptr) {
+                if (current->word == word) {
+                    current->count++;
+                    return;
             }
             prev = current;
             current = current->next;
@@ -675,6 +684,7 @@ struct ReviewLink{
         int oneStarCount = 0;
         Review* currentReview = head;
 
+        auto start = high_resolution_clock::now();
         while (currentReview != nullptr) {
             if (currentReview->Rating == 1) {
                 oneStarCount++;
@@ -697,6 +707,8 @@ struct ReviewLink{
             }
             currentReview = currentReview->next;
         }
+        auto end = high_resolution_clock::now();
+        auto duration = duration_cast<microseconds>(end - start);
 
         sortWordFrequency();
 
@@ -719,6 +731,7 @@ struct ReviewLink{
             wordHead = wordHead->next;
             delete temp;
         }
+        cout << "Time taken to Search (Linked List, Reviews): " << duration.count() << " microseconds" << endl;
     }
 
 };
@@ -801,6 +814,7 @@ struct ReviewArray {
         int wordCountSize = 0;
         int oneStarCount = 0;
 
+        auto start = high_resolution_clock::now();
         for (int i = 0; i < size; ++i) {
             if (reviews[i].Rating == 1) {
              oneStarCount++;
@@ -818,6 +832,7 @@ struct ReviewArray {
                             break;
                         }
                     }
+
                     if (!found && wordCountSize < MAX_WORDS) {
                         wordList[wordCountSize].word = word;
                         wordList[wordCountSize].count = 1;
@@ -826,6 +841,8 @@ struct ReviewArray {
                 }
             }
         }
+        auto end = high_resolution_clock::now();
+        auto duration = duration_cast<microseconds>(end - start);
 
         // Sort descending by frequency
         for (int i = 0; i < wordCountSize - 1; ++i) {
@@ -848,6 +865,7 @@ struct ReviewArray {
             cout.width(13); cout << left << wordList[i].word;
             cout << wordList[i].count << endl;
         }
+        cout << "Time taken to Search (Array, Reviews): " << duration.count() << " microseconds" << endl;
     }
 };
 
