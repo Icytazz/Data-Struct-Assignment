@@ -142,14 +142,16 @@ struct TransactionsLink{
     
         bool swapped;
         Transaction* ptr1;
-        Transaction* lptr = nullptr;
-    
+        Transaction* ptr2 = nullptr;
+        
+        //pass
         do {
             swapped = false;
             ptr1 = Entry;
             Transaction* prev = nullptr;
-    
-            while (ptr1->next != lptr) {
+            
+            //sort logic
+            while (ptr1->next != ptr2) {
                 Transaction* next = ptr1->next;
     
                 if (ptr1->Date > next->Date) {
@@ -177,7 +179,7 @@ struct TransactionsLink{
                     ptr1 = ptr1->next;
                 }
             }
-            lptr = ptr1;
+            ptr2 = ptr1;
         } while (swapped);
     }
 
@@ -328,7 +330,6 @@ struct TransactionsLink{
 struct TransactionsArray {
     Transaction transactions[MAX_TRANSACTIONS];
     int size = 0;
-    int sortType = 0; 
 
     bool LoadTransactionsFromCSV(const string& filename) {
         ifstream file(filename);
@@ -370,14 +371,15 @@ struct TransactionsArray {
     }
 
     void bubbleSortByDate() {
+        //pass
         for (int i = 0; i < size - 1; ++i) {
+            //sort logic
             for (int j = 0; j < size - i - 1; ++j) {
                 if (transactions[j].Date > transactions[j + 1].Date) {
                     swap(transactions[j], transactions[j + 1]);
                 }
             }
         }
-        sortType = 1;
     }
 
     void insertionSortByDate() {
@@ -390,11 +392,10 @@ struct TransactionsArray {
             }
             transactions[j + 1] = key;
         }
-        sortType = 2;
     }
 
     void displayTransactions() const {
-        cout << "\n--- Transactions Sorted by Date ---\n";
+        cout << "\n--- Transactions by Date ---\n";
         for (int i = 0; i < size; ++i) {
             const auto& t = transactions[i];
             cout << "Date: " << t.Date
@@ -876,8 +877,8 @@ int main(){
     TransactionsLink traList;
     TransactionsArray traArray;
 
-    string revFile = "reviews_clean.csv";
-    string traFile = "transactions_clean.csv";
+    string revFile = "C:/Users/User/OneDrive - Asia Pacific University/SEM_4/Data_Structures/Assignment/reviews_clean.csv";
+    string traFile = "C:/Users/User/OneDrive - Asia Pacific University/SEM_4/Data_Structures/Assignment/transactions_clean.csv";
 
     auto start = high_resolution_clock::now();
     auto end = high_resolution_clock::now();
